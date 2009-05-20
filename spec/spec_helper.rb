@@ -7,3 +7,5 @@ require 'subdomain_routes'
 Spec::Runner.configure do |config|
   
 end
+
+include ActionController::UrlWriter
