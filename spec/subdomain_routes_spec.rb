@@ -9,7 +9,6 @@ end
 
 describe SubdomainRoutes do
   before(:each) do
-    @request = ActionController::Request.new("HTTP_HOST" => "www.example.com", "METHOD" => "get")
     ActionController::Routing::Routes.clear!
   end
   
@@ -77,6 +76,7 @@ describe SubdomainRoutes do
     
   describe "Recognition" do
     it "should add the host's subdomain to the request environment" do
+      @request = ActionController::Request.new("HTTP_HOST" => "www.example.com")
       @request.stub!(:request_method).and_return("GET")
       request_environment = ActionController::Routing::Routes.extract_request_environment(@request)
       request_environment[:subdomain].should == @request.host.downcase.split(".").first
@@ -132,65 +132,84 @@ describe SubdomainRoutes do
   end
   
   describe "UrlWriter" do
+    include ActionController::UrlWriter
+    
     context "when a single subdomain is specified in the route" do
-      it "should force the host for a path if the request subdomain differs" do
-        map_subdomain(:admin) { |admin| admin.resource :users }
-        admin_users_path.should == "http://admin.example.com/users"
+      it "should force the host for a path if the host subdomain differs" do
+        map_subdomain(:admin) { |admin| admin.resources :users }
+        admin_users_path(:host => "www.example.com").should == "http://admin.example.com/users"
       end
       
-      it "should not force the host for a path if the request subdomain is the same" do
-        map_subdomain(:www) { |www| www.resource :users }
-        www_users_path.should == "/users"
-      end
-    end
-
-    context "when multiple subdomains are specified in the route" do
-      it "should not force the host for a path if the request subdomain differs" do
-        map_subdomain(:support, :admin, :name => nil) { |map| map.resource :users }
-        users_path.should == "/users" # i.e. with the host being www.example.com, this route won't be recognised!
-        # 
-        # TODO:
-        # 
-        # This is a currently a limitation of the library.
-        # 
-        # Ideally, in this case the host should not be changed. Instead
-        # an error should be raised if the request subdomain is not one
-        # of the subdomains specified in the route, or a path generated
-        # otherwise. Can't figure out how to do this!!
-        # 
+      it "should not force the host for a path if the host subdomain is the same" do
+        map_subdomain(:www) { |www| www.resources :users }
+        www_users_path(:host => "www.example.com").should == "/users"
       end
     end
   end
-
-  # it "should not interfere with normal resource routes" do
-  #   ActionController::Routing::Routes.draw do |map|
-  #     map.resources :items
+  
+  # describe "UrlRewriter" do
+  #   before(:each) do
+  #     request = ActionController::Request.new({
+  #       'REQUEST_METHOD' => "GET",
+  #       'QUERY_STRING'   => "",
+  #       "REQUEST_URI"    => "/",
+  #       "HTTP_HOST"      => "www.example.com",
+  #       "SERVER_PORT"    => "80",
+  #       "HTTPS"          => "off"
+  #     })
+  #     @rewriter = ActionController::UrlRewriter.new(request, {})
   #   end
-  #   items_path.should == "/items"
-  #   new_item_path.should == "/items/new"
-  #   item_path(1).should == "/items/1"
-  #   edit_item_path(1).should == "/items/1/edit"
-  # end
-  # 
-  # it "should work with resources" do
-  #   map_subdomain(:admin) do |admin|
-  #     admin.resources :items
-  #   end
-  #   admin_items_path.should == "http://admin.example.com/items"
-  #   new_admin_item_path.should == "http://admin.example.com/items/new"
-  #   admin_item_path(1).should == "http://admin.example.com/items/1"
-  #   edit_admin_item_path(1).should == "http://admin.example.com/items/1/edit"
-  # end
-  # 
-  # it "should work with nested resources" do
-  #   map_subdomain(:admin) do |admin|
-  #     admin.resources :items do |item|
-  #       item.resources :comments
+  #   
+  #   context "when multiple subdomains are specified in the route" do
+  #     it "should not force the host for a path if the request subdomain differs" do
+  #       map_subdomain(:www, :name => nil) { |map| map.resources :users }
+  #       @rewriter.rewrite(:controller => :users, :action => :index).should == "/users" # i.e. with the host being www.example.com, this route won't be recognised!
+  #       # 
+  #       # TODO:
+  #       # 
+  #       # This is a currently a limitation of the library.
+  #       # 
+  #       # Ideally, in this case the host should not be changed. Instead
+  #       # an error should be raised if the request subdomain is not one
+  #       # of the subdomains specified in the route, or a path generated
+  #       # otherwise. Can't figure out how to do this!!
+  #       # 
   #     end
   #   end
-  #   admin_item_comments_path(1).should == "http://admin.example.com/items/1/comments"
-  #   new_admin_item_comment_path(1).should == "http://admin.example.com/items/1/comments/new"
-  #   admin_item_comment_path(1, 2).should == "http://admin.example.com/items/1/comments/2"
-  #   edit_admin_item_comment_path(1, 2).should == "http://admin.example.com/items/1/comments/2/edit"
-  # end  
+  # end
 end
+
+
+
+
+# it "should not interfere with normal resource routes" do
+#   ActionController::Routing::Routes.draw do |map|
+#     map.resources :items
+#   end
+#   items_path.should == "/items"
+#   new_item_path.should == "/items/new"
+#   item_path(1).should == "/items/1"
+#   edit_item_path(1).should == "/items/1/edit"
+# end
+# 
+# it "should work with resources" do
+#   map_subdomain(:admin) do |admin|
+#     admin.resources :items
+#   end
+#   admin_items_path.should == "http://admin.example.com/items"
+#   new_admin_item_path.should == "http://admin.example.com/items/new"
+#   admin_item_path(1).should == "http://admin.example.com/items/1"
+#   edit_admin_item_path(1).should == "http://admin.example.com/items/1/edit"
+# end
+# 
+# it "should work with nested resources" do
+#   map_subdomain(:admin) do |admin|
+#     admin.resources :items do |item|
+#       item.resources :comments
+#     end
+#   end
+#   admin_item_comments_path(1).should == "http://admin.example.com/items/1/comments"
+#   new_admin_item_comment_path(1).should == "http://admin.example.com/items/1/comments/new"
+#   admin_item_comment_path(1, 2).should == "http://admin.example.com/items/1/comments/2"
+#   edit_admin_item_comment_path(1, 2).should == "http://admin.example.com/items/1/comments/2/edit"
+# end  
