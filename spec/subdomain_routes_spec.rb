@@ -7,22 +7,32 @@ def map_subdomain(*subdomains, &block)
   end
 end
 
+def environment(headers = {})
+  { 'REQUEST_METHOD' => "GET",
+    'QUERY_STRING'   => "",
+    "REQUEST_URI"    => "/",
+    "HTTP_HOST"      => "www.example.com",
+    "SERVER_PORT"    => "80",
+    "HTTPS"          => "off" }.merge(headers)
+end
+
+def recognize_path(request)
+  ActionController::Routing::Routes.recognize_path(request.path, ActionController::Routing::Routes.extract_request_environment(request))
+end
+
+
 describe SubdomainRoutes do
   before(:each) do
     ActionController::Routing::Routes.clear!
   end
   
-  describe "Routing" do
+  describe "route" do
     it "should include a single specified subdomain in the options" do
-      map_subdomain(:admin) do |admin|
-        admin.options[:subdomains].should == [ :admin ]
-      end
+      map_subdomain(:admin) { |admin| admin.options[:subdomains].should == [ :admin ] }
     end
 
     it "should include many specified subdomains in the options" do
-      map_subdomain(:admin, :support) do |map|
-        map.options[:subdomains].should == [ :admin, :support ]
-      end
+      map_subdomain(:admin, :support) { |map| map.options[:subdomains].should == [ :admin, :support ] }
     end
   
     it "should raise ArgumentError if no subdomain is specified" do
@@ -32,55 +42,33 @@ describe SubdomainRoutes do
     [ [ :admin ], [ :support, :admin ] ].each do |subdomains|
       context "mapping #{subdomains.size} subdomains" do
         it "should set the first subdomain as a namespace" do
-          map_subdomain(*subdomains) do |map|
-            map.options[:namespace].should == "#{subdomains.first}/"
-          end
+          map_subdomain(*subdomains) { |map| map.options[:namespace].should == "#{subdomains.first}/" }
         end
 
         it "should prefix the first subdomain to named routes" do
-          map_subdomain(*subdomains) do |map|
-            map.options[:name_prefix].should == "#{subdomains.first}_"
-          end
+          map_subdomain(*subdomains) { |map| map.options[:name_prefix].should == "#{subdomains.first}_" }
         end
         
         it "should instead set a namespace to the name if specified" do
           args = subdomains << { :name => :something }
-          map_subdomain(*args) do |map|
-            map.options[:namespace].should == "something/"
-          end
+          map_subdomain(*args) { |map| map.options[:namespace].should == "something/" }
         end
 
         it "should instead prefix the name to named routes if specified" do
           args = subdomains << { :name => :something }
-          map_subdomain(*args) do |map|
-            map.options[:name_prefix].should == "something_"
-          end
+          map_subdomain(*args) { |map| map.options[:name_prefix].should == "something_" }
         end
 
         it "should not set a namespace if name is specified as nil" do
           args = subdomains << { :name => nil }
-          map_subdomain(*args) do |map|
-            map.options[:namespace].should be_nil
-          end
+          map_subdomain(*args) { |map| map.options[:namespace].should be_nil }
         end
 
         it "should not set a named route prefix if name is specified as nil" do
           args = subdomains << { :name => nil }
-          map_subdomain(*args) do |map|
-            map.options[:name_prefix].should be_nil
-          end
+          map_subdomain(*args) { |map| map.options[:name_prefix].should be_nil }
         end
       end
-    end
-  end
-    
-  describe "Recognition" do
-    it "should add the host's subdomain to the request environment" do
-      @request = ActionController::Request.new("HTTP_HOST" => "www.example.com")
-      @request.stub!(:request_method).and_return("GET")
-      request_environment = ActionController::Routing::Routes.extract_request_environment(@request)
-      request_environment[:subdomain].should == @request.host.downcase.split(".").first
-      request_environment[:subdomain].should == "www"
     end
     
     context "for a single specified subdomain" do
@@ -128,37 +116,80 @@ describe SubdomainRoutes do
         end
       end
     end
-    
   end
   
-  describe "UrlWriter" do
-    include ActionController::UrlWriter
-    
-    context "when a single subdomain is specified in the route" do
-      it "should force the host for a path if the host subdomain differs" do
-        map_subdomain(:admin) { |admin| admin.resources :users }
-        admin_users_path(:host => "www.example.com").should == "http://admin.example.com/users"
+  describe "resources route" do
+    it "should transfer specified subdomains to any nested routes" do
+      map_subdomain(:admin) do |admin|
+        admin.resources(:items) { |item| item.options[:subdomains].should == [ :admin ] }
+        admin.resource(:config) { |config| config.options[:subdomains].should == [ :admin ] }
       end
-      
-      it "should not force the host for a path if the host subdomain is the same" do
-        map_subdomain(:www) { |www| www.resources :users }
-        www_users_path(:host => "www.example.com").should == "/users"
+    end
+  end
+    
+  describe "route recognition" do
+    before(:each) do
+      @environment = environment("HTTP_HOST" => "www.example.com", "REQUEST_URI" => "/items/2")
+      @request = ActionController::Request.new(@environment)
+      class ItemsController < ActionController::Base; end
+    end
+
+    it "should add the host's subdomain to the request environment" do
+      request_environment = ActionController::Routing::Routes.extract_request_environment(@request)
+      request_environment[:subdomain].should == @request.host.downcase.split(".").first
+      request_environment[:subdomain].should == "www"
+    end
+    
+    context "for a single specified subdomain" do
+      it "should recognise a route if the subdomain matches" do
+        map_subdomain(:www) { |www| www.resources :items }
+        params = recognize_path(@request)
+        params[:controller].should == "www/items"
+        params[:action].should == "show"
+        params[:id].should == "2"
+      end
+    
+      it "should not recognise a route if the subdomain doesn't match" do
+        map_subdomain(:admin) { |admin| admin.resources :items }
+        lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+      end
+    end
+    
+    context "for multiple specified subdomains" do
+      it "should recognise a route if the subdomain matches" do
+        map_subdomain(:www, :admin, :name => nil) { |map| map.resources :items }
+        params = recognize_path(@request)
+        params[:controller].should == "items"
+        params[:action].should == "show"
+        params[:id].should == "2"
+      end
+    
+      it "should not recognise a route if the subdomain doesn't match" do
+        map_subdomain(:support, :admin, :name => nil) { |map| map.resources :items }
+        lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
       end
     end
   end
   
-  # describe "UrlRewriter" do
-  #   before(:each) do
-  #     request = ActionController::Request.new({
-  #       'REQUEST_METHOD' => "GET",
-  #       'QUERY_STRING'   => "",
-  #       "REQUEST_URI"    => "/",
-  #       "HTTP_HOST"      => "www.example.com",
-  #       "SERVER_PORT"    => "80",
-  #       "HTTPS"          => "off"
-  #     })
-  #     @rewriter = ActionController::UrlRewriter.new(request, {})
+  # # TODO: url writing and rewriting is all we have left to test!
+  
+  # describe "UrlWriter" do
+  #   include ActionController::UrlWriter
+  #   
+  #   context "when a single subdomain is specified in the route" do
+  #     it "should force the host for a path if the host subdomain differs" do
+  #       map_subdomain(:admin) { |admin| admin.resources :users }
+  #       admin_users_path(:host => "www.example.com").should == "http://admin.example.com/users"
+  #     end
+  #     
+  #     it "should not force the host for a path if the host subdomain is the same" do
+  #       map_subdomain(:www) { |www| www.resources :users }
+  #       www_users_path(:host => "www.example.com").should == "/users"
+  #     end
   #   end
+  # end
+  
+  # describe "UrlRewriter" do
   #   
   #   context "when multiple subdomains are specified in the route" do
   #     it "should not force the host for a path if the request subdomain differs" do
@@ -178,38 +209,3 @@ describe SubdomainRoutes do
   #   end
   # end
 end
-
-
-
-
-# it "should not interfere with normal resource routes" do
-#   ActionController::Routing::Routes.draw do |map|
-#     map.resources :items
-#   end
-#   items_path.should == "/items"
-#   new_item_path.should == "/items/new"
-#   item_path(1).should == "/items/1"
-#   edit_item_path(1).should == "/items/1/edit"
-# end
-# 
-# it "should work with resources" do
-#   map_subdomain(:admin) do |admin|
-#     admin.resources :items
-#   end
-#   admin_items_path.should == "http://admin.example.com/items"
-#   new_admin_item_path.should == "http://admin.example.com/items/new"
-#   admin_item_path(1).should == "http://admin.example.com/items/1"
-#   edit_admin_item_path(1).should == "http://admin.example.com/items/1/edit"
-# end
-# 
-# it "should work with nested resources" do
-#   map_subdomain(:admin) do |admin|
-#     admin.resources :items do |item|
-#       item.resources :comments
-#     end
-#   end
-#   admin_item_comments_path(1).should == "http://admin.example.com/items/1/comments"
-#   new_admin_item_comment_path(1).should == "http://admin.example.com/items/1/comments/new"
-#   admin_item_comment_path(1, 2).should == "http://admin.example.com/items/1/comments/2"
-#   edit_admin_item_comment_path(1, 2).should == "http://admin.example.com/items/1/comments/2/edit"
-# end  
