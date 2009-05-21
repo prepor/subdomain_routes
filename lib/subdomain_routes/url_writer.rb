@@ -9,7 +9,7 @@ module SubdomainRoutes
       if subdomain = options.delete(:subdomain)
         if subdomain.to_s != first_part
           options[:only_path] = false
-          options[:host] = "#{subdomain}.#{other_parts.join('.')}"
+          options[:host] = other_parts.unshift(subdomain).join('.')
         end
       end
       url_for_without_subdomains(options)

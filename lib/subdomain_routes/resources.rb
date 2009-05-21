@@ -1,86 +1,25 @@
-module SubdomainRoutes
+module StaticSubdomains
   module Resources
-    def self.included(base)
-      base::INHERITABLE_OPTIONS << :subdomains
-      base.alias_method_chain :resources, :subdomains
-      base.alias_method_chain :resource, :subdomains  
-    end
-    
-    def resources_with_subdomains(*args, &block)
-      options = args.extract_options!
-      if subdomains = options[:subdomains]
-        options[:conditions] ||= {}
-        options[:conditions][:subdomains] = subdomains
-        unless subdomains.size > 1
-          options[:requirements] ||= {}
-          options[:requirements][:subdomain] = subdomains.first
-        end
+    module Resource
+      def self.included(base)
+        base.alias_method_chain :conditions, :subdomains
+        base.alias_method_chain :requirements, :subdomains
       end
-      with_options options do |map|
-        map.resources_without_subdomains(*args, &block)
+      
+      def conditions_with_subdomains
+        @options[:subdomains] ?
+          conditions_without_subdomains.merge(:subdomains => @options[:subdomains]) :
+          conditions_without_subdomains
       end
-    end
-
-    def resource_with_subdomains(*args, &block)
-      options = args.extract_options!
-      if subdomains = options[:subdomains]
-        options[:conditions] ||= {}
-        options[:conditions][:subdomains] = subdomains
-        unless subdomains.size > 1
-          options[:requirements] ||= {}
-          options[:requirements][:subdomain] = subdomains.first
-        end
-      end
-      with_options options do |map|
-        map.resource_without_subdomains(*args, &block)
+      
+      def requirements_with_subdomains(with_id = false)
+        @options[:subdomains] && @options[:subdomains].size == 1 ?
+          requirements_without_subdomains(with_id).merge(:subdomain => @options[:subdomains].first) :
+          requirements_without_subdomains(with_id)
       end
     end
   end
 end
 
-ActionController::Resources.send :include, SubdomainRoutes::Resources
-
-
-
-
-# module SubdomainRoutes
-#   module Resources
-#     def self.included(base)
-#       base::INHERITABLE_OPTIONS << :subdomains
-#       base.alias_method_chain :resources, :subdomains
-#       base.alias_method_chain :resource, :subdomains  
-#     end
-#     
-#     def resources_with_subdomains(*args, &block)
-#       options = args.extract_options!
-#       if subdomains = options[:subdomains]
-#         options[:conditions] ||= {}
-#         options[:conditions][:subdomains] = subdomains
-#         unless subdomains.is_a? Array
-#           options[:requirements] ||= {}
-#           options[:requirements] = { :subdomain => subdomains }
-#         end
-#       end
-#       with_options options do |map|
-#         map.resources_without_subdomains(*args, &block)
-#       end
-#     end
-# 
-#     def resource_with_subdomains(*args, &block)
-#       options = args.extract_options!
-#       if subdomains = options[:subdomains]
-#         options[:conditions] ||= {}
-#         options[:conditions][:subdomains] = subdomains
-#         unless subdomains.is_a? Array
-#           options[:requirements] ||= {}
-#           options[:requirements] = { :subdomain => subdomains }
-#         end
-#       end
-#       with_options options do |map|
-#         map.resource_without_subdomains(*args, &block)
-#       end
-#     end
-#   end
-# end
-# 
-# ActionController::Resources.send :include, SubdomainRoutes::Resources
+ActionController::Resources::INHERITABLE_OPTIONS << :subdomains
+ActionController::Resources::Resource.send :include, StaticSubdomains::Resources::Resource
