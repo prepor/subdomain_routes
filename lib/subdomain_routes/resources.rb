@@ -36,8 +36,8 @@ ActionController::Resources.send :include, SubdomainRoutes::Resources
 #       end
 #       
 #       def requirements_with_subdomains(with_id = false)
-#         @options[:subdomains] && @options[:subdomains].size == 1 ?
-#           requirements_without_subdomains(with_id).merge(:subdomain => @options[:subdomains].first) :
+#         @options[:subdomains] ?
+#           requirements_without_subdomains(with_id).merge(:subdomains => @options[:subdomains]) :
 #           requirements_without_subdomains(with_id)
 #       end
 #     end

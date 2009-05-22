@@ -1,18 +1,17 @@
 module SubdomainRoutes
   def self.process_options(options, host)
-    if subdomain = options.delete(:subdomain)
+    if subdomains = options.delete(:subdomains)
       first_part, *other_parts = host.split('.')
-      case subdomain
-      when Array
-        unless subdomain.map(&:to_s).find { |sub| first_part == sub }
-          raise ActionController::RoutingError, "route for #{options.merge(:subdomain => subdomain).inspect} failed to generate, expected subdomain in: #{subdomain.inspect}, instead got subdomain: #{first_part}"
+      if subdomains.size > 1
+        unless subdomains.map(&:to_s).find { |sub| first_part == sub }
+          raise ActionController::RoutingError, "route for #{options.merge(:subdomains => subdomains).inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{first_part}"
         end
         ## TODO: eventually some code in here for setting user-specified :subdomain (if it matches) ???
         ## (write specs first!)
       else
-        if first_part != subdomain.to_s
+        if first_part != subdomains.first.to_s
           options[:only_path] = false
-          options[:host] = other_parts.unshift(subdomain).join('.')
+          options[:host] = other_parts.unshift(subdomains.first).join('.')
         end
         ## TODO: eventually some code in here for setting user-specified :subdomain (if it matches) ???
         ## (write specs first!)
@@ -37,7 +36,7 @@ module SubdomainRoutes
   module UrlRewriter
     def self.included(base)
       base.alias_method_chain :rewrite, :subdomains
-      base::RESERVED_OPTIONS << :subdomain
+      base::RESERVED_OPTIONS << :subdomains
     end
     
     def rewrite_with_subdomains(options)

@@ -74,7 +74,7 @@ describe SubdomainRoutes do
 
       it "should add the subdomain to the route generation requirements" do
         ActionController::Routing::Routes.routes.each do |route|
-          route.requirements[:subdomain].should == :admin
+          route.requirements[:subdomains].should == [ :admin ]
         end
       end
     end
@@ -97,7 +97,7 @@ describe SubdomainRoutes do
 
       it "should not add a subdomain to the route generation requirements" do
         ActionController::Routing::Routes.routes.each do |route|
-          route.requirements[:subdomain].should == [ :support, :admin ]
+          route.requirements[:subdomains].should == [ :support, :admin ]
         end
       end
     end
@@ -237,6 +237,14 @@ describe SubdomainRoutes do
           lambda { polymorphic_path(@item) }.should raise_error(ActionController::RoutingError)
         end
       end
+      
+      # context "and a subdomain is explicitly specified" do
+      #   it "blah" do
+      #     with_host "books.example.com" do
+      #       items_path
+      #     end
+      #   end
+      # end
     end
   end
 end
