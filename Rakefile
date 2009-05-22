@@ -5,10 +5,19 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "subdomain_routes"
-    gem.summary = %Q{TODO}
+    gem.summary = %Q{A Rails library for incorporating subdomains into route generation and recognition.}
+    gem.description = <<-EOF
+      SubdomainRoutes add subdomain conditions to the Rails routing system. Routes may be restricted to
+      one or many specified subdomains. An URL will be recognised only if the host subdomain matches the
+      subdomain specified in the route. Route generation is also enhanced, so that the subdomain of a
+      generated URL (or path) will be changed if the requested route has a different subdomain to that of
+      the current request.
+    EOF
     gem.email = "mdholling@gmail.com"
     gem.homepage = "http://github.com/mholling/subdomain_routes"
     gem.authors = ["Matthew Hollingworth"]
+    gem.add_dependency 'actionpack'
+    gem.has_rdoc = false
 
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end

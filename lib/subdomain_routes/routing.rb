@@ -10,6 +10,7 @@ module SubdomainRoutes
           subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" if name
           with_options(subdomain_options.merge(options), &block)
         end
+        alias_method :subdomains, :subdomain
       end
 
       def self.included(base)

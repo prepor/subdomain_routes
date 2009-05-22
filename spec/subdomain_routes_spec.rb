@@ -18,6 +18,12 @@ describe SubdomainRoutes do
       lambda { map_subdomain }.should raise_error(ArgumentError)
     end
     
+    it "should be invoked by map.subdomains as well as map.subdomain" do
+      ActionController::Routing::Routes.draw do |map|
+        map.subdomains(:admin, :support) { |sub| sub.options[:subdomains].should == [ :admin, :support ] }
+      end
+    end
+    
     [ [ :admin ], [ :support, :admin ] ].each do |subdomains|
       context "mapping #{subdomains.size} subdomains" do
         it "should set the first subdomain as a namespace" do

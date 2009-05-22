@@ -1,4 +1,4 @@
-module StaticSubdomains
+module SubdomainRoutes
   module Resources
     def self.included(base)
       base.alias_method_chain :action_options_for, :subdomains
@@ -12,7 +12,7 @@ module StaticSubdomains
   end
 end
 
-ActionController::Resources.send :include, StaticSubdomains::Resources
+ActionController::Resources.send :include, SubdomainRoutes::Resources
 
 
 
@@ -21,7 +21,7 @@ ActionController::Resources.send :include, StaticSubdomains::Resources
 # # so good that way, but has the benefit of not modifying ActionController::Resources#action_options_for,
 # # which is a private method.
 # # 
-# module StaticSubdomains
+# module SubdomainRoutes
 #   module Resources
 #     module Resource
 #       def self.included(base)
@@ -45,4 +45,4 @@ ActionController::Resources.send :include, StaticSubdomains::Resources
 # end
 # 
 # ActionController::Resources::INHERITABLE_OPTIONS << :subdomains
-# ActionController::Resources::Resource.send :include, StaticSubdomains::Resources::Resource
+# ActionController::Resources::Resource.send :include, SubdomainRoutes::Resources::Resource
