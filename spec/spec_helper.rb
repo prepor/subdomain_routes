@@ -26,6 +26,7 @@ end
 def with_host(host, &block)
   eval %Q{
     Class.new(ActionView::TestCase::TestController) do
+      include Spec::Matchers
       def initialize
         super
         request.host = "#{host}"
@@ -33,6 +34,7 @@ def with_host(host, &block)
     end.new.instance_eval(&block)
     
     Class.new do
+      include Spec::Matchers
       include ActionController::UrlWriter
       self.default_url_options = { :host => "#{host}" }
     end.new.instance_eval(&block)

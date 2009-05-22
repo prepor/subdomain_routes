@@ -27,9 +27,14 @@ module SubdomainRoutes
         if subdomains = options.delete(:subdomains)
           options[:conditions] ||= {}
           options[:conditions][:subdomains] = subdomains
-          unless subdomains.size > 1
+          if subdomains.size > 1
+            options[:requirements] ||= {}
+            options[:requirements][:subdomain] = subdomains
+          else
             options[:requirements] ||= {}
             options[:requirements][:subdomain] = subdomains.first
+            # TODO: just alway pass an array!
+            # TODO: change :subdomain to :subdomains
           end
         end
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }

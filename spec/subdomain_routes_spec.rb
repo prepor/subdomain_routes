@@ -97,7 +97,7 @@ describe SubdomainRoutes do
 
       it "should not add a subdomain to the route generation requirements" do
         ActionController::Routing::Routes.routes.each do |route|
-          route.requirements[:subdomain].should be_nil
+          route.requirements[:subdomain].should == [ :support, :admin ]
         end
       end
     end
@@ -163,12 +163,14 @@ describe SubdomainRoutes do
       new_class :user, :article, :item
     end
     
+    it "should let a :subdomain option override the URL or path in an appropriate way..."
+    
     context "when a single subdomain is specified" do
       before(:each) do
         map_subdomain(:admin) { |admin| admin.resources :users }
       end
       
-      it "should not change the host for an URL if the subdomains are the same" do
+      it "should not change the host for an URL if the host subdomain matches" do
         with_host "admin.example.com" do
           admin_users_url.should == "http://admin.example.com/users"
           @user = User.create
@@ -176,7 +178,7 @@ describe SubdomainRoutes do
         end
       end
       
-      it "should change the host for an URL if the subdomains differ" do
+      it "should change the host for an URL if the host subdomain differs" do
         with_host "www.example.com" do
           admin_users_url.should == "http://admin.example.com/users"
           @user = User.create
@@ -184,7 +186,7 @@ describe SubdomainRoutes do
         end
       end
       
-      it "should not force the host for a path if the subdomains are the same" do
+      it "should not force the host for a path if the host subdomain matches" do
         with_host "admin.example.com" do
           admin_users_path.should == "/users"
           @user = User.create
@@ -192,7 +194,7 @@ describe SubdomainRoutes do
         end
       end
       
-      it "should force the host for a path if the subdomains differ" do
+      it "should force the host for a path if the host subdomain differs" do
         with_host "www.example.com" do
           admin_users_path.should == "http://admin.example.com/users"
           @user = User.create
@@ -205,25 +207,9 @@ describe SubdomainRoutes do
       before(:each) do
         map_subdomain(:books, :dvds, :cds, :name => nil) { |map| map.resources :items }
       end
-      
-      # 
-      # TODO:
-      # 
-      # This is a currently a limitation of the library.
-      # 
-      # Ideally, if the current subdomain does not match any of those specified in the requested route,
-      # one of two things should happen:
-      #   1. the route should generate if a :subdomain option is specified with a matching subdomain, or
-      #   2. an error should be raised if no (or a non-matching) :subdomain option is specified.
-      # At present I can't figure out how to do this!!
-      # 
-      # Thes tests below would be the ones to change to spec the desired behaviour, along with those
-      # describing "for multiple specified subdomains" in the routing tests above (which is where the
-      # implementation would likely go).
-      # 
-      
-      it "should not change the host for an URL, irrespective of the host subdomain" do
-        [ "books.example.com", "dvds.example.com", "www.example.com" ].each do |host|
+            
+      it "should not change the host for an URL if the host subdomain matches" do
+        [ "books.example.com", "dvds.example.com" ].each do |host|
           with_host(host) do
             items_url.should == "http://#{host}/items"
             @item = Item.create
@@ -231,14 +217,24 @@ describe SubdomainRoutes do
           end
         end
       end
-      
-      it "should not force the host for a path, irrespective of the host subdomain" do
-        [ "books.example.com", "dvds.example.com", "www.example.com" ].each do |host|
+
+      it "should not force the host for a path if the host subdomain matches" do
+        [ "books.example.com", "dvds.example.com" ].each do |host|
           with_host(host) do
             items_path.should == "/items"
             @item = Item.create
             polymorphic_path(@item).should == "/items/#{@item.to_param}"
           end
+        end
+      end
+
+      it "should raise an error if the host subdomain doesn't match" do
+        with_host "www.example.com" do
+          lambda { items_url }.should raise_error(ActionController::RoutingError)
+          lambda { items_path }.should raise_error(ActionController::RoutingError)
+          @item = Item.create
+          lambda { polymorphic_url(@item) }.should raise_error(ActionController::RoutingError)
+          lambda { polymorphic_path(@item) }.should raise_error(ActionController::RoutingError)
         end
       end
     end
