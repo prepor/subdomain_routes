@@ -24,21 +24,32 @@ def recognize_path(request)
 end
 
 def with_host(host, &block)
-  eval %Q{
+  controller = eval %Q{
     Class.new(ActionView::TestCase::TestController) do
       include Spec::Matchers
       def initialize
         super
         request.host = "#{host}"
       end
-    end.new.instance_eval(&block)
-    
+    end.new }
+
+  obj = eval %Q{
     Class.new do
       include Spec::Matchers
       include ActionController::UrlWriter
       self.default_url_options = { :host => "#{host}" }
-    end.new.instance_eval(&block)
-  }
+    end.new }
+
+  variables = instance_variables.inject({}) do |hash, var|
+    hash.merge(var => instance_variable_get(var))
+  end
+
+  [ controller, obj ].each do |object|
+    object.instance_eval do
+      variables.each { |variable, value| instance_variable_set(variable, value) }
+    end
+    object.instance_eval(&block)
+  end
 end
 
 def new_class(*names)

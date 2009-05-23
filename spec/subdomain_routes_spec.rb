@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+new_class :item, :user
+
 describe SubdomainRoutes do
   before(:each) do
     ActionController::Routing::Routes.clear!
@@ -159,92 +161,128 @@ describe SubdomainRoutes do
   end
   
   describe "URL writing" do
-    before(:all) do
-      new_class :user, :article, :item
-    end
-    
-    it "should let a :subdomain option override the URL or path in an appropriate way..."
-    
-    context "when a single subdomain is specified" do
-      before(:each) do
-        map_subdomain(:admin) { |admin| admin.resources :users }
+    context "when included as a module and a host is not specified" do
+      include ActionController::UrlWriter
+
+      it "should raise an error when a subdomain route is requested" do
+        map_subdomain(:www) { |www| www.resources :users }
+        lambda { www_users_path }.should raise_error
       end
       
+      context "and a non-subdomain route is requested" do
+        before(:each) do
+          ActionController::Routing::Routes.draw { |map| map.resources :users }
+        end
+
+        it "should not raise an error when a path is requested" do
+          lambda { users_path }.should_not raise_error
+        end
+        
+        it "should raise an error when an URL is requested" do
+          lambda { users_url }.should raise_error        
+        end
+      end
+    end
+    
+    context "when a single subdomain is specified in the route" do
+      before(:each) do
+        map_subdomain(:admin, :name => nil) { |admin| admin.resources :users }
+        @user = User.create
+      end
+    
       it "should not change the host for an URL if the host subdomain matches" do
         with_host "admin.example.com" do
-          admin_users_url.should == "http://admin.example.com/users"
-          @user = User.create
-          polymorphic_url([ :admin, @user ]).should == "http://admin.example.com/users/#{@user.to_param}"
+                 user_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
+          polymorphic_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
         end
       end
       
       it "should change the host for an URL if the host subdomain differs" do
         with_host "www.example.com" do
-          admin_users_url.should == "http://admin.example.com/users"
-          @user = User.create
-          polymorphic_url([ :admin, @user ]).should == "http://admin.example.com/users/#{@user.to_param}"
+                 user_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
+          polymorphic_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
         end
       end
       
       it "should not force the host for a path if the host subdomain matches" do
         with_host "admin.example.com" do
-          admin_users_path.should == "/users"
-          @user = User.create
-          polymorphic_path([ :admin, @user ]).should == "/users/#{@user.to_param}"
+                 user_path(@user).should == "/users/#{@user.to_param}"
+          polymorphic_path(@user).should == "/users/#{@user.to_param}"
         end
       end
       
       it "should force the host for a path if the host subdomain differs" do
         with_host "www.example.com" do
-          admin_users_path.should == "http://admin.example.com/users"
-          @user = User.create
-          polymorphic_path([ :admin, @user ]).should == "http://admin.example.com/users/#{@user.to_param}"
+                 user_path(@user).should == "http://admin.example.com/users/#{@user.to_param}"
+          polymorphic_path(@user).should == "http://admin.example.com/users/#{@user.to_param}"
+        end
+      end
+    
+      context "and a subdomain different from the host subdomain is explicitly requested" do
+        it "should change the host if the requested subdomain matches" do
+          with_host "www.example.com" do
+                   user_path(@user, :subdomain => :admin).should == "http://admin.example.com/users/#{@user.to_param}"
+            polymorphic_path(@user, :subdomain => :admin).should == "http://admin.example.com/users/#{@user.to_param}"
+          end
+        end
+      
+        it "should raise an error if the requested subdomain doesn't match" do
+          with_host "admin.example.com" do
+            lambda {        user_path(@user, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
+            lambda { polymorphic_path(@user, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
+          end
         end
       end
     end
     
-    context "when multiple subdomains are specified" do
+    context "when multiple subdomains are specified in the route" do
       before(:each) do
-        map_subdomain(:books, :dvds, :cds, :name => nil) { |map| map.resources :items }
+        map_subdomain(:books, :dvds, :name => nil) { |map| map.resources :items }
+        @item = Item.create
       end
             
       it "should not change the host for an URL if the host subdomain matches" do
         [ "books.example.com", "dvds.example.com" ].each do |host|
           with_host(host) do
-            items_url.should == "http://#{host}/items"
-            @item = Item.create
+                   item_url(@item).should == "http://#{host}/items/#{@item.to_param}"
             polymorphic_url(@item).should == "http://#{host}/items/#{@item.to_param}"
           end
         end
       end
-
+    
       it "should not force the host for a path if the host subdomain matches" do
         [ "books.example.com", "dvds.example.com" ].each do |host|
           with_host(host) do
-            items_path.should == "/items"
-            @item = Item.create
+                   item_path(@item).should == "/items/#{@item.to_param}"
             polymorphic_path(@item).should == "/items/#{@item.to_param}"
           end
         end
       end
-
+    
       it "should raise an error if the host subdomain doesn't match" do
         with_host "www.example.com" do
-          lambda { items_url }.should raise_error(ActionController::RoutingError)
-          lambda { items_path }.should raise_error(ActionController::RoutingError)
-          @item = Item.create
-          lambda { polymorphic_url(@item) }.should raise_error(ActionController::RoutingError)
+          lambda {         item_url(@item) }.should raise_error(ActionController::RoutingError)
+          lambda {        item_path(@item) }.should raise_error(ActionController::RoutingError)
+          lambda {  polymorphic_url(@item) }.should raise_error(ActionController::RoutingError)
           lambda { polymorphic_path(@item) }.should raise_error(ActionController::RoutingError)
         end
       end
       
-      # context "and a subdomain is explicitly specified" do
-      #   it "blah" do
-      #     with_host "books.example.com" do
-      #       items_path
-      #     end
-      #   end
-      # end
+      context "and a subdomain different from the host subdomain is explicitly requested" do
+        it "should change the host if the requested subdomain matches" do
+          with_host "books.example.com" do
+                   item_path(@item, :subdomain => :dvds).should == "http://dvds.example.com/items/#{@item.to_param}"
+            polymorphic_path(@item, :subdomain => :dvds).should == "http://dvds.example.com/items/#{@item.to_param}"
+          end
+        end
+    
+        it "should raise an error if the requested subdomain doesn't match" do
+          with_host "books.example.com" do
+            lambda {        item_path(@item, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
+            lambda { polymorphic_path(@item, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
+          end
+        end
+      end
     end
   end
 end

@@ -16,6 +16,7 @@ ActionController::Resources.send :include, SubdomainRoutes::Resources
 
 
 
+
 # # 
 # # This alternative also works. It duplicates code in add_route_with_subdomains (in routing.rb) so is not
 # # so good that way, but has the benefit of not modifying ActionController::Resources#action_options_for,
