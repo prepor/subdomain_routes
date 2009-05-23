@@ -11,7 +11,7 @@ describe SubdomainRoutes do
     it "should include a single specified subdomain in the options" do
       map_subdomain(:admin) { |admin| admin.options[:subdomains].should == [ :admin ] }
     end
-
+  
     it "should include many specified subdomains in the options" do
       map_subdomain(:admin, :support) { |map| map.options[:subdomains].should == [ :admin, :support ] }
     end
@@ -31,7 +31,7 @@ describe SubdomainRoutes do
         it "should set the first subdomain as a namespace" do
           map_subdomain(*subdomains) { |map| map.options[:namespace].should == "#{subdomains.first}/" }
         end
-
+  
         it "should prefix the first subdomain to named routes" do
           map_subdomain(*subdomains) { |map| map.options[:name_prefix].should == "#{subdomains.first}_" }
         end
@@ -40,17 +40,17 @@ describe SubdomainRoutes do
           args = subdomains << { :name => :something }
           map_subdomain(*args) { |map| map.options[:namespace].should == "something/" }
         end
-
+  
         it "should instead prefix the name to named routes if specified" do
           args = subdomains << { :name => :something }
           map_subdomain(*args) { |map| map.options[:name_prefix].should == "something_" }
         end
-
+  
         it "should not set a namespace if name is specified as nil" do
           args = subdomains << { :name => nil }
           map_subdomain(*args) { |map| map.options[:namespace].should be_nil }
         end
-
+  
         it "should not set a named route prefix if name is specified as nil" do
           args = subdomains << { :name => nil }
           map_subdomain(*args) { |map| map.options[:name_prefix].should be_nil }
@@ -67,20 +67,20 @@ describe SubdomainRoutes do
           map.connect "/:controller/:action/:id"
         end
       end
-
+  
       it "should add the specified subdomain to the route recognition conditions" do
         ActionController::Routing::Routes.routes.each do |route|
           route.conditions[:subdomains].should == [ :admin ]
         end
       end
-
+  
       it "should add the subdomain to the route generation requirements" do
         ActionController::Routing::Routes.routes.each do |route|
           route.requirements[:subdomains].should == [ :admin ]
         end
       end
     end
-
+  
     context "for multiple specified subdomains" do
       before(:each) do
         map_subdomain(:support, :admin) do |map|
@@ -90,13 +90,13 @@ describe SubdomainRoutes do
           map.connect "/:controller/:action/:id"
         end
       end
-
+  
       it "should add the specified subdomain to the route recognition conditions" do
         ActionController::Routing::Routes.routes.each do |route|
           route.conditions[:subdomains].should == [ :support, :admin ]
         end
       end
-
+  
       it "should not add a subdomain to the route generation requirements" do
         ActionController::Routing::Routes.routes.each do |route|
           route.requirements[:subdomains].should == [ :support, :admin ]
@@ -120,7 +120,7 @@ describe SubdomainRoutes do
       @request.host, @request.request_uri = "www.example.com", "/items/2"
       @subdomain = @request.host.downcase.split(".").first
     end
-
+  
     it "should add the host's subdomain to the request environment" do
       request_environment = ActionController::Routing::Routes.extract_request_environment(@request)
       request_environment[:subdomain].should == @subdomain
@@ -163,23 +163,43 @@ describe SubdomainRoutes do
   describe "URL writing" do
     context "when included as a module and a host is not specified" do
       include ActionController::UrlWriter
-
+  
       it "should raise an error when a subdomain route is requested" do
         map_subdomain(:www) { |www| www.resources :users }
-        lambda { www_users_path }.should raise_error
+        lambda { www_users_path }.should raise_error(SubdomainRoutes::HostNotSupplied)
       end
       
       context "and a non-subdomain route is requested" do
         before(:each) do
           ActionController::Routing::Routes.draw { |map| map.resources :users }
         end
-
+  
         it "should not raise an error when a path is requested" do
           lambda { users_path }.should_not raise_error
         end
         
         it "should raise an error when an URL is requested" do
-          lambda { users_url }.should raise_error        
+          lambda { users_url }.should raise_error
+        end
+      end
+    end
+    
+    context "in a controller" do
+      before(:each) do
+        map_subdomain(:admin) { |admin| admin.resources :users }
+      end
+      
+      it "should raise an error if the host is nil" do
+        in_controller do
+          request.host = nil
+          lambda { admin_users_url }.should raise_error(SubdomainRoutes::SubdomainNotAvailable)
+        end
+      end
+      
+      it "should raise an error if the host is an ip address" do
+        in_controller do
+          request.host = "207.192.69.152"
+          lambda { admin_users_url }.should raise_error(SubdomainRoutes::SubdomainNotAvailable)
         end
       end
     end
@@ -285,4 +305,15 @@ describe SubdomainRoutes do
       end
     end
   end
+  
+  # describe "configuration" do
+  #   it "should have a default tld length of 2" do
+  #     SubdomainRoutes::Config.tld_length.should == 2
+  #   end
+  #   
+  #   it "should have a tld length setter" do
+  #     SubdomainRoutes::Config.tld_length = 3
+  #     SubdomainRoutes::Config.tld_length.should == 3
+  #   end
+  # end
 end

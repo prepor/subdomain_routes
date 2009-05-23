@@ -23,32 +23,34 @@ def recognize_path(request)
   ActionController::Routing::Routes.recognize_path(request.path, ActionController::Routing::Routes.extract_request_environment(request))
 end
 
+def in_controller(&block)
+  Class.new(ActionView::TestCase::TestController) do
+    include Spec::Matchers
+  end.new.instance_eval(&block)
+end
+
+def in_object(&block)
+  Class.new do
+    include Spec::Matchers
+    include ActionController::UrlWriter
+  end.new.instance_eval(&block)
+end
+
 def with_host(host, &block)
-  controller = eval %Q{
-    Class.new(ActionView::TestCase::TestController) do
-      include Spec::Matchers
-      def initialize
-        super
-        request.host = "#{host}"
-      end
-    end.new }
-
-  obj = eval %Q{
-    Class.new do
-      include Spec::Matchers
-      include ActionController::UrlWriter
-      self.default_url_options = { :host => "#{host}" }
-    end.new }
-
-  variables = instance_variables.inject({}) do |hash, var|
-    hash.merge(var => instance_variable_get(var))
+  variables = instance_variables.inject([]) do |array, name|
+    array << [ name, instance_variable_get(name) ]
   end
-
-  [ controller, obj ].each do |object|
-    object.instance_eval do
-      variables.each { |variable, value| instance_variable_set(variable, value) }
-    end
-    object.instance_eval(&block)
+  
+  in_controller do
+    request.host = host
+    variables.each { |name, value| instance_variable_set(name, value) }
+    instance_eval(&block)
+  end
+  
+  in_object do
+    self.class.default_url_options = { :host => host }
+    variables.each { |name, value| instance_variable_set(name, value) }
+    instance_eval(&block)
   end
 end
 
