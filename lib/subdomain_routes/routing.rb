@@ -7,7 +7,6 @@ module SubdomainRoutes
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
           subdomains.uniq!
-          # TODO: what about [ :www, "www" ] ?
           raise ArgumentError, "Please specify at least one subdomain!" if subdomains.empty?
           subdomains.compact.each do |subdomain|
             raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]+$/

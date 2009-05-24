@@ -68,3 +68,5 @@ def new_class(*names)
     end
   end
 end
+
+new_class :item, :user
