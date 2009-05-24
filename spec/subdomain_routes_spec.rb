@@ -59,10 +59,9 @@ describe SubdomainRoutes do
     end
   
     it "should add a subdomain method to requests" do
-      in_controller do
-        request.host = "www.example.com"
-        request.subdomain.should == "www"
-      end
+      request = ActionController::TestRequest.new
+      request.host = "admin.example.com"
+      request.subdomain.should == "admin"
     end
   end
   
@@ -75,9 +74,10 @@ describe SubdomainRoutes do
         lambda { map_subdomain(subdomain) { } }.should_not raise_error
       end
     end
-    
-    it "should handle nil subdomain specified"
-    # mostly this already works, but must not set namespace or name_prefix.
+
+    it "should include a nil subdomain in the options" do
+      map_subdomain(nil) { |map| map.options[:subdomains].should == [ nil ] }
+    end
 
     it "should include a single specified subdomain in the options" do
       map_subdomain(:admin) { |admin| admin.options[:subdomains].should == [ :admin ] }
@@ -89,6 +89,10 @@ describe SubdomainRoutes do
   
     it "should raise ArgumentError if no subdomain is specified" do
       lambda { map_subdomain }.should raise_error(ArgumentError)
+    end
+    
+    it "should not include repeated subdomains in the options" do
+      map_subdomain(:admin, :support, :admin) { |map| map.options[:subdomains].should == [ :admin, :support ] }
     end
     
     it "should be invoked by map.subdomains as well as map.subdomain" do
@@ -126,6 +130,26 @@ describe SubdomainRoutes do
           args = subdomains + [ :name => nil ]
           map_subdomain(*args) { |map| map.options[:name_prefix].should be_nil }
         end
+      end
+    end
+    
+    context "mapping the nil subdomain" do
+      it "should not set a namespace" do
+        map_subdomain(nil) { |map| map.options[:namespace].should be_nil }
+      end
+
+      it "should not set a named route prefix" do
+        map_subdomain(nil) { |map| map.options[:name_prefix].should be_nil }
+      end
+    end
+    
+    context "mapping nil and other subdomains" do
+      it "should set the first non-nil subdomain as a namespace" do
+        map_subdomain(nil, :www) { |map| map.options[:namespace].should == "www/" }
+      end
+
+      it "should prefix the first non-nil subdomain to named routes" do
+        map_subdomain(nil, :www) { |map| map.options[:name_prefix].should == "www_" }
       end
     end
     
@@ -205,7 +229,7 @@ describe SubdomainRoutes do
     
     context "for a single specified subdomain" do
       it "should recognise a route if the subdomain matches" do
-        map_subdomain(:www) { |subdomain| subdomain.resources :items }
+        map_subdomain(:www) { |www| www.resources :items }
         params = recognize_path(@request)
         params[:controller].should == "www/items"
         params[:action].should == "show"
@@ -215,6 +239,17 @@ describe SubdomainRoutes do
       it "should not recognise a route if the subdomain doesn't match" do
         map_subdomain("admin") { |admin| admin.resources :items }
         lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+      end
+    end
+    
+    context "for a nil subdomain" do
+      it "should recognise a route if there is no subdomain" do
+        map_subdomain(nil) { |map| map.resources :items }
+        @request.host = "example.com"
+        params = recognize_path(@request)
+        params[:controller].should == "items"
+        params[:action].should == "show"
+        params[:id].should == "2"
       end
     end
     
@@ -237,7 +272,6 @@ describe SubdomainRoutes do
   describe "URL writing" do
     { "nil" => nil, "an IP address" => "207.192.69.152" }.each do |host_type, host|
       context "when the host is #{host_type}" do
-      # TODO: check the error types here...
         it "should raise an error when a subdomain route is requested" do
           map_subdomain(:www) { |www| www.resources :users }
           with_host(host) { lambda { www_users_path }.should raise_error(SubdomainRoutes::HostNotSupplied) }
@@ -256,60 +290,61 @@ describe SubdomainRoutes do
         end
       end
     end
-      
-    it "should handle the nil subdomain special case OK!"
+        
+    [ [ "single", :admin, "admin.example.com" ], [ "nil", nil, "example.com" ] ].each do |type, subdomain, host|
+      context "when a #{type} subdomain is specified in the route" do
+        before(:each) do
+          map_subdomain(subdomain, :name => nil) { |map| map.resources :users }
+          @user = User.create
+        end
     
-    context "when a single subdomain is specified in the route" do
-      before(:each) do
-        map_subdomain(:admin, :name => nil) { |admin| admin.resources :users }
-        @user = User.create
-      end
-    
-      it "should not change the host for an URL if the host subdomain matches" do
-        with_host "admin.example.com" do
-                 user_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
-          polymorphic_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
-        end
-      end
-      
-      it "should change the host for an URL if the host subdomain differs" do
-        with_host "www.example.com" do
-                 user_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
-          polymorphic_url(@user).should == "http://admin.example.com/users/#{@user.to_param}"
-        end
-      end
-      
-      it "should not force the host for a path if the host subdomain matches" do
-        with_host "admin.example.com" do
-                 user_path(@user).should == "/users/#{@user.to_param}"
-          polymorphic_path(@user).should == "/users/#{@user.to_param}"
-        end
-      end
-      
-      it "should force the host for a path if the host subdomain differs" do
-        with_host "www.example.com" do
-                 user_path(@user).should == "http://admin.example.com/users/#{@user.to_param}"
-          polymorphic_path(@user).should == "http://admin.example.com/users/#{@user.to_param}"
-        end
-      end
-    
-      context "and a subdomain different from the host subdomain is explicitly requested" do
-        it "should change the host if the requested subdomain matches" do
-          with_host "www.example.com" do
-                   user_path(@user, :subdomain => :admin).should == "http://admin.example.com/users/#{@user.to_param}"
-            polymorphic_path(@user, :subdomain => :admin).should == "http://admin.example.com/users/#{@user.to_param}"
+        it "should not change the host for an URL if the host subdomain matches" do
+          with_host(host) do
+                   user_url(@user).should == "http://#{host}/users/#{@user.to_param}"
+            polymorphic_url(@user).should == "http://#{host}/users/#{@user.to_param}"
           end
         end
       
-        it "should raise an error if the requested subdomain doesn't match" do
-          with_host "admin.example.com" do
-            lambda {        user_path(@user, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
-            lambda { polymorphic_path(@user, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
+        it "should change the host for an URL if the host subdomain differs" do
+          with_host "www.example.com" do
+                   user_url(@user).should == "http://#{host}/users/#{@user.to_param}"
+            polymorphic_url(@user).should == "http://#{host}/users/#{@user.to_param}"
+          end
+        end
+      
+        it "should not force the host for a path if the host subdomain matches" do
+          with_host(host) do
+                   user_path(@user).should == "/users/#{@user.to_param}"
+            polymorphic_path(@user).should == "/users/#{@user.to_param}"
+          end
+        end
+      
+        it "should force the host for a path if the host subdomain differs" do
+          with_host "www.example.com" do
+                   user_path(@user).should == "http://#{host}/users/#{@user.to_param}"
+            polymorphic_path(@user).should == "http://#{host}/users/#{@user.to_param}"
+          end
+        end
+    
+        context "and a subdomain different from the host subdomain is explicitly requested" do
+          it "should change the host if the requested subdomain matches" do
+            with_host "www.example.com" do
+                     user_path(@user, :subdomain => subdomain).should == "http://#{host}/users/#{@user.to_param}"
+              polymorphic_path(@user, :subdomain => subdomain).should == "http://#{host}/users/#{@user.to_param}"
+            end
+          end
+      
+          it "should raise an error if the requested subdomain doesn't match" do
+            with_host(host) do
+              lambda {        user_path(@user, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
+              lambda { polymorphic_path(@user, :subdomain => :www) }.should raise_error(ActionController::RoutingError)
+            end
           end
         end
       end
     end
     
+    # TODO: add the [ nil, :www ] combination?
     context "when multiple subdomains are specified in the route" do
       before(:each) do
         map_subdomain(:books, :dvds, :name => nil) { |map| map.resources :items }

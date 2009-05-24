@@ -6,22 +6,21 @@ module SubdomainRoutes
     include SplitHost
     
     def rewrite_subdomain_options(options, host)
-      if subdomains = options.delete(:subdomains)
+      if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
-        new_subdomain = (options[:subdomain] || old_subdomain).to_s # TODO: this won't work for nil subdomain routes
-        # TODO: also, other problems with subdomains.map(&:to_s), &:to_sym as nil will screw things up!
-        unless subdomains.map(&:to_s).include? new_subdomain
-          if subdomains.size > 1 || options[:subdomain]
-            raise ActionController::RoutingError, "route for #{options.merge(:subdomains => subdomains).inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{new_subdomain.inspect}"
+        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain] : old_subdomain
+        unless subdomains.map(&:to_s).include? new_subdomain.to_s
+          if subdomains.size > 1 || options.has_key?(:subdomain)
+            raise ActionController::RoutingError, "route for #{options.inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{new_subdomain.inspect}"
           else
             new_subdomain = subdomains.first
           end
         end
         unless old_subdomain == new_subdomain
           options[:only_path] = false
-          # options[:host] = "#{new_subdomain}.#{domain}"
           options[:host] = [ new_subdomain, domain ].compact.join('.')
         end
+        options.delete(:subdomains)
         options.delete(:subdomain)
       end
     end
