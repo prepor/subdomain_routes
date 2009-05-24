@@ -11,6 +11,9 @@ module SubdomainRoutes
           subdomains.compact.each do |subdomain|
             raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]+$/
           end
+          if subdomains.include? nil
+            raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length
+          end
           name = options.has_key?(:name) ? options.delete(:name) : subdomains.compact.first
           subdomain_options = { :subdomains => subdomains }
           subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" if name

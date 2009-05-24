@@ -7,52 +7,79 @@ describe SubdomainRoutes do
   
   describe "subdomain extraction" do
     include SubdomainRoutes::SplitHost
-
-    describe "configuration" do
-      it "should have a default domain length of 2" do
-        SubdomainRoutes::Config.domain_length.should == 2
-      end
-    end
-    
-    it "should find the domain" do
-      domain_for_host("www.example.com").should == "example.com"
-    end
-
-    it "should find the subdomain when it is present" do
-      subdomain_for_host("www.example.com").should == "www"
-    end
-  
-    it "should find nil when subdomain is absent" do
-      subdomain_for_host("example.com").should be_nil
-    end
-    
-    context "with multi-level subdomains" do
-      before(:each) do
-        @host = "blah.www.example.com"
-      end
-      
-      it "should raise an error" do
-        lambda { subdomain_for_host(@host) }.should raise_error(SubdomainRoutes::TooManySubdomains)
-      end
-            
-      it "should raise an error when generating URLs" do
-        map_subdomain(:admin) { |admin| admin.resources :users }
-        with_host(@host) do
-          lambda { admin_users_path }.should raise_error(SubdomainRoutes::TooManySubdomains)
-        end
-      end
-      
-      it "should raise an error when recognising URLs" do
-        request = ActionController::TestRequest.new
-        request.host = @host
-        lambda { recognize_path(request) }.should raise_error(SubdomainRoutes::TooManySubdomains)
-      end
-    end
   
     it "should add a subdomain method to requests" do
       request = ActionController::TestRequest.new
       request.host = "admin.example.com"
       request.subdomain.should == "admin"
+    end
+
+    describe "configuration" do
+      it "should have a default domain length of nil" do
+        SubdomainRoutes::Config.domain_length.should be_nil
+      end
+    end
+    
+    it "should raise an error if no host is supplied" do
+      lambda { subdomain_for_host(nil) }.should raise_error(SubdomainRoutes::HostNotSupplied)
+    end
+    
+    context "when the domain length is not set" do
+      before(:each) do
+        SubdomainRoutes::Config.stub!(:domain_length).and_return(nil)
+      end
+      
+      it "should always find a subdomain" do
+        subdomain_for_host("example.com").should == "example"
+        subdomain_for_host("www.example.com").should == "www"
+        subdomain_for_host("blah.www.example.com").should == "blah"
+      end
+      
+      it "should raise an error if a nil subdomain is mapped" do
+        lambda { map_subdomain(nil) }.should raise_error(ArgumentError)
+        lambda { map_subdomain(nil, :www) }.should raise_error(ArgumentError)
+      end
+    end
+    
+    context "when domain length is set" do
+      before(:each) do
+        SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
+      end        
+    
+      it "should find the domain" do
+        domain_for_host("www.example.com").should == "example.com"
+      end
+
+      it "should find the subdomain when it is present" do
+        subdomain_for_host("www.example.com").should == "www"
+      end
+  
+      it "should find nil when subdomain is absent" do
+        subdomain_for_host("example.com").should be_nil
+      end
+    
+      context "with multi-level subdomains" do
+        before(:each) do
+          @host = "blah.www.example.com"
+        end
+      
+        it "should raise an error" do
+          lambda { subdomain_for_host(@host) }.should raise_error(SubdomainRoutes::TooManySubdomains)
+        end
+            
+        it "should raise an error when generating URLs" do
+          map_subdomain(:admin) { |admin| admin.resources :users }
+          with_host(@host) do
+            lambda { admin_users_path }.should raise_error(SubdomainRoutes::TooManySubdomains)
+          end
+        end
+      
+        it "should raise an error when recognising URLs" do
+          request = ActionController::TestRequest.new
+          request.host = @host
+          lambda { recognize_path(request) }.should raise_error(SubdomainRoutes::TooManySubdomains)
+        end
+      end
     end
   end
 end
