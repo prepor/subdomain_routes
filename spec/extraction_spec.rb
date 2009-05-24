@@ -21,7 +21,7 @@ describe SubdomainRoutes do
     end
     
     it "should raise an error if no host is supplied" do
-      lambda { subdomain_for_host(nil) }.should raise_error(SubdomainRoutes::HostNotSupplied)
+      lambda { split_host(nil) }.should raise_error(SubdomainRoutes::HostNotSupplied)
     end
     
     context "when the domain length is not set" do
@@ -29,10 +29,10 @@ describe SubdomainRoutes do
         SubdomainRoutes::Config.stub!(:domain_length).and_return(nil)
       end
       
-      it "should always find a subdomain" do
-        subdomain_for_host("example.com").should == "example"
-        subdomain_for_host("www.example.com").should == "www"
-        subdomain_for_host("blah.www.example.com").should == "blah"
+      it "should always find a subdomain and a domain" do
+                 split_host("example.com").should == [ "example", "com" ]
+             split_host("www.example.com").should == [ "www", "example.com" ]
+        split_host("blah.www.example.com").should == [ "blah", "www.example.com" ]
       end
       
       it "should raise an error if a nil subdomain is mapped" do
