@@ -1,12 +1,18 @@
 module SubdomainRoutes
   module Routing
     module RouteSet
+      include SplitHost
+      
       module Mapper
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
-          raise ArgumentError.new("Please specify at least one subdomain!") if subdomains.empty?
+          raise ArgumentError, "Please specify at least one subdomain!" if subdomains.empty?
+          subdomains.each do |subdomain|
+            raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]+$/
+          end
           name = options.has_key?(:name) ? options.delete(:name) : subdomains.first
           subdomain_options = { :subdomains => subdomains }
+          # TODO: check that this won't screw up if nil subdomain is specified!
           subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" if name
           with_options(subdomain_options.merge(options), &block)
         end
@@ -19,7 +25,7 @@ module SubdomainRoutes
       end
       
       def extract_request_environment_with_subdomain(request)
-        extract_request_environment_without_subdomain(request).merge(:subdomain => request.host.downcase.split(".").first)
+        extract_request_environment_without_subdomain(request).merge(:subdomain => subdomain_for_host(request.host))
       end
     
       def add_route_with_subdomains(*args)

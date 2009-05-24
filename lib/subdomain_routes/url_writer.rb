@@ -2,24 +2,25 @@ module SubdomainRoutes
   class HostNotSupplied < StandardError
   end
   
-  class SubdomainNotAvailable < StandardError
-  end
-  
   module RewriteSubdomainOptions
+    include SplitHost
+    
     def rewrite_subdomain_options(options, host)
       if subdomains = options.delete(:subdomains)
-        first_part, *other_parts = host.split('.')
-        subdomain = (options[:subdomain] || first_part).to_s
-        unless subdomains.map(&:to_s).include? subdomain
+        old_subdomain, domain = split_host(host)
+        new_subdomain = (options[:subdomain] || old_subdomain).to_s # TODO: this won't work for nil subdomain routes
+        # TODO: also, other problems with subdomains.map(&:to_s), &:to_sym as nil will screw things up!
+        unless subdomains.map(&:to_s).include? new_subdomain
           if subdomains.size > 1 || options[:subdomain]
-            raise ActionController::RoutingError, "route for #{options.merge(:subdomains => subdomains).inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{subdomain}"
+            raise ActionController::RoutingError, "route for #{options.merge(:subdomains => subdomains).inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{new_subdomain.inspect}"
           else
-            subdomain = subdomains.first
+            new_subdomain = subdomains.first
           end
         end
-        unless first_part == subdomain
+        unless old_subdomain == new_subdomain
           options[:only_path] = false
-          options[:host] = other_parts.unshift(subdomain).join('.')
+          # options[:host] = "#{new_subdomain}.#{domain}"
+          options[:host] = [ new_subdomain, domain ].compact.join('.')
         end
         options.delete(:subdomain)
       end
@@ -51,13 +52,11 @@ module SubdomainRoutes
       base::RESERVED_OPTIONS << :subdomain
     end
     
-    def rewrite_with_subdomains(options)
-      if @request.host.nil?
-        raise SubdomainNotAvailable, "Missing host to link to!"
-      elsif @request.host =~ /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
-        raise SubdomainNotAvailable, "Can't set subdomain for an IP address!"
-      end
+    def rewrite_with_subdomains(options)      
       host = options[:host] || @request.host
+      if options[:subdomains] && host.blank?
+        raise HostNotSupplied, "Missing host to link to!"
+      end
       rewrite_subdomain_options(options, host)
       rewrite_without_subdomains(options)
     end

@@ -1,6 +1,6 @@
-# module SubdomainRoutes
-#   module Config
-#     mattr_accessor :tld_length
-#     self.tld_length = 2
-#   end
-# end
+module SubdomainRoutes
+  module Config
+    mattr_accessor :domain_length
+    self.domain_length = 2
+  end
+end
