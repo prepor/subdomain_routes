@@ -21,11 +21,16 @@ describe SubdomainRoutes do
     end
 
     it "should include a single specified subdomain in the options" do
-      map_subdomain(:admin) { |admin| admin.options[:subdomains].should == [ :admin ] }
+      map_subdomain(:admin) { |admin| admin.options[:subdomains].should == [ "admin" ] }
+    end
+    
+    it "should accept strings or symbols as subdomains" do
+      map_subdomain(:admin)  { |admin| admin.options[:subdomains].should == [ "admin" ] }
+      map_subdomain("admin") { |admin| admin.options[:subdomains].should == [ "admin" ] }
     end
   
     it "should include many specified subdomains in the options" do
-      map_subdomain(:admin, :support) { |map| map.options[:subdomains].should == [ :admin, :support ] }
+      map_subdomain(:admin, :support) { |map| map.options[:subdomains].should == [ "admin", "support" ] }
     end
   
     it "should raise ArgumentError if no subdomain is specified" do
@@ -33,12 +38,12 @@ describe SubdomainRoutes do
     end
     
     it "should not include repeated subdomains in the options" do
-      map_subdomain(:admin, :support, :admin) { |map| map.options[:subdomains].should == [ :admin, :support ] }
+      map_subdomain(:admin, :support, :admin) { |map| map.options[:subdomains].should == [ "admin", "support" ] }
     end
     
     it "should be invoked by map.subdomains as well as map.subdomain" do
       ActionController::Routing::Routes.draw do |map|
-        map.subdomains(:admin, :support) { |sub| sub.options[:subdomains].should == [ :admin, :support ] }
+        map.subdomains(:admin, :support) { |sub| sub.options[:subdomains].should == [ "admin", "support" ] }
       end
     end
     
@@ -106,13 +111,13 @@ describe SubdomainRoutes do
   
       it "should add the specified subdomain to the route recognition conditions" do
         ActionController::Routing::Routes.routes.each do |route|
-          route.conditions[:subdomains].should == [ :admin ]
+          route.conditions[:subdomains].should == [ "admin" ]
         end
       end
   
       it "should add the subdomain to the route generation requirements" do
         ActionController::Routing::Routes.routes.each do |route|
-          route.requirements[:subdomains].should == [ :admin ]
+          route.requirements[:subdomains].should == [ "admin" ]
         end
       end
     end
@@ -129,13 +134,13 @@ describe SubdomainRoutes do
   
       it "should add the specified subdomain to the route recognition conditions" do
         ActionController::Routing::Routes.routes.each do |route|
-          route.conditions[:subdomains].should == [ :support, :admin ]
+          route.conditions[:subdomains].should == [ "support", "admin" ]
         end
       end
   
       it "should not add a subdomain to the route generation requirements" do
         ActionController::Routing::Routes.routes.each do |route|
-          route.requirements[:subdomains].should == [ :support, :admin ]
+          route.requirements[:subdomains].should == [ "support", "admin" ]
         end
       end
     end

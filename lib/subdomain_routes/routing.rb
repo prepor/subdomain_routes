@@ -6,6 +6,7 @@ module SubdomainRoutes
       module Mapper
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
+          subdomains.map! { |subdomain| subdomain.nil? ? subdomain : subdomain.to_s }
           subdomains.uniq!
           raise ArgumentError, "Please specify at least one subdomain!" if subdomains.empty?
           subdomains.compact.each do |subdomain|
