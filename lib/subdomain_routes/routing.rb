@@ -6,17 +6,22 @@ module SubdomainRoutes
       module Mapper
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
-          subdomains.map! { |subdomain| subdomain.nil? ? subdomain : subdomain.to_s }
-          subdomains.uniq!
-          raise ArgumentError, "Please specify at least one subdomain!" if subdomains.empty?
-          subdomains.compact.each do |subdomain|
-            raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]+$/
+          if subdomains.size == 1 && subdomains.first.is_a?(Proc)
+            name = options.delete(:name)
+            subdomain_options = { :subdomains => subdomains.first }
+          else
+            subdomains.map! { |subdomain| subdomain.nil? ? subdomain : subdomain.to_s }
+            subdomains.uniq!
+            raise ArgumentError, "Please specify at least one subdomain!" if subdomains.empty?
+            subdomains.compact.each do |subdomain|
+              raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]+$/
+            end
+            if subdomains.include? nil
+              raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length
+            end
+            name = options.has_key?(:name) ? options.delete(:name) : subdomains.compact.first
+            subdomain_options = { :subdomains => subdomains }
           end
-          if subdomains.include? nil
-            raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length
-          end
-          name = options.has_key?(:name) ? options.delete(:name) : subdomains.compact.first
-          subdomain_options = { :subdomains => subdomains }
           subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" if name
           with_options(subdomain_options.merge(options), &block)
         end
@@ -32,13 +37,28 @@ module SubdomainRoutes
         extract_request_environment_without_subdomain(request).merge(:subdomain => subdomain_for_host(request.host))
       end
     
+      # def add_route_with_subdomains(*args)
+      #   options = args.extract_options!
+      #   if subdomains = options.delete(:subdomains)
+      #     options[:conditions] ||= {}
+      #     options[:conditions][:subdomains] = subdomains
+      #     options[:requirements] ||= {}
+      #     options[:requirements][:subdomains] = subdomains
+      #   end
+      #   with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
+      # end
+
       def add_route_with_subdomains(*args)
         options = args.extract_options!
-        if subdomains = options.delete(:subdomains)
-          options[:conditions] ||= {}
+        options[:conditions] ||= {}
+        options[:requirements] ||= {}
+        case subdomains = options.delete(:subdomains)
+        when Array
           options[:conditions][:subdomains] = subdomains
-          options[:requirements] ||= {}
           options[:requirements][:subdomains] = subdomains
+        when Hash
+          options[:conditions][:subdomains] = subdomains[:recognize]
+          options[:requirements][:subdomains] = subdomains[:generate]
         end
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
       end
@@ -51,7 +71,9 @@ module SubdomainRoutes
       
       def recognition_conditions_with_subdomains
         result = recognition_conditions_without_subdomains
-        result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)" if conditions[:subdomains]
+        # result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)" if conditions[:subdomains]
+        result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)"   if conditions[:subdomains].is_a? Array
+        result << "self.send(conditions[:subdomains][:recognize], env[:subdomain].to_s)" if conditions[:subdomains].is_a? Hash
         result
       end
     end

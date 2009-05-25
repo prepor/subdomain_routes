@@ -16,11 +16,11 @@ describe SubdomainRoutes do
       end
     end
 
-    it "should include a nil subdomain in the options" do
+    it "should accept a nil subdomain" do
       map_subdomain(nil) { |map| map.options[:subdomains].should == [ nil ] }
     end
 
-    it "should include a single specified subdomain in the options" do
+    it "should accept a single specified subdomain" do
       map_subdomain(:admin) { |admin| admin.options[:subdomains].should == [ "admin" ] }
     end
     
@@ -29,10 +29,15 @@ describe SubdomainRoutes do
       map_subdomain("admin") { |admin| admin.options[:subdomains].should == [ "admin" ] }
     end
   
-    it "should include many specified subdomains in the options" do
+    it "should accept many specified subdomains" do
       map_subdomain(:admin, :support) { |map| map.options[:subdomains].should == [ "admin", "support" ] }
     end
-  
+    
+    # it "should accept a proc as the subdomain" do
+    #   proc = lambda { |context| context.current_user.user_name }
+    #   map_subdomain(proc) { |map| map.options[:subdomains].should == proc }
+    # end
+      
     it "should raise ArgumentError if no subdomain is specified" do
       lambda { map_subdomain }.should raise_error(ArgumentError)
     end
@@ -144,5 +149,41 @@ describe SubdomainRoutes do
         end
       end
     end
+    
+    # context "for a proc subdomain" do
+    #   before(:each) do
+    #     @proc = lambda { |context| context.current_user.username }
+    #   end
+    # 
+    #   it "should not set a namespace" do
+    #     map_subdomain(@proc) { |map| map.options[:namespace].should be_nil }
+    #   end
+    # 
+    #   it "should not set a named route prefix" do
+    #     map_subdomain(@proc) { |map| map.options[:name_prefix].should be_nil }
+    #   end
+    #   
+    #   it "should set a namespace to the name if specified" do
+    #     map_subdomain(@proc, :name => :something) { |map| map.options[:namespace].should == "something/" }
+    #   end
+    # 
+    #   it "should prefix the name to named routes if specified" do
+    #     map_subdomain(@proc, :name => :something) { |map| map.options[:name_prefix].should == "something_" }
+    #   end
+    # 
+    #   it "should add the specified subdomain to the route recognition conditions" do
+    #     map_subdomain(@proc) { |map| map.resouces :articles }
+    #     ActionController::Routing::Routes.routes.each do |route|
+    #       route.conditions[:subdomains].should == @proc
+    #     end
+    #   end
+    # 
+    #   it "should not add a subdomain to the route generation requirements" do
+    #     map_subdomain(@proc) { |map| map.resouces :articles }
+    #     ActionController::Routing::Routes.routes.each do |route|
+    #       route.requirements[:subdomains].should == @proc
+    #     end
+    #   end
+    # end
   end
 end
