@@ -64,5 +64,37 @@ describe SubdomainRoutes do
         lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
       end
     end
+    
+    context "for a proc subdomain" do
+      before(:each) do
+        map_subdomain(:proc => :blog?) { |blog| blog.resources :articles }
+        
+        @request = ActionController::TestRequest.new
+        @request.request_uri = "/articles"
+        
+        SubdomainRoutes::Config.subdomain_proc :blog? do |subdomain|
+          case subdomain
+          when "recognised" then true
+          when "redirect" then :www
+          else false
+          end
+        end
+      end
+      
+      it "should match the route if the proc returns true" do
+        @request.host = "recognised.example.com"
+        lambda { recognize_path(@request) }.should_not raise_error
+      end
+      
+      it "should not match the route if the proc returns a different subdomain" do
+        @request.host = "redirect.example.com".sub(/^\./, '')
+        lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+      end
+      
+      it "should not match the route if the proc returns false" do
+        @request.host = "unrecognised.example.com".sub(/^\./, '')
+        lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+      end
+    end
   end
 end

@@ -28,15 +28,6 @@ describe SubdomainRoutes do
       end
     end
 
-    # 
-    # it "should work with" do
-    #   map_subdomain(:www) { |www| www.resources :items }
-    #   with_host "www.example.com" do
-    #     www_items_path(:subdomain => "www").should == "/items"
-    #     www_items_path(:subdomain => :www).should == "/items"
-    #   end
-    # end
-
     [ [ "single", :admin, "admin.example.com" ],
       [    "nil",    nil,       "example.com" ] ].each do |type, subdomain, host|
       context "when a #{type} subdomain is specified in the route" do
@@ -157,6 +148,50 @@ describe SubdomainRoutes do
             end
           end
         end
+      end
+    end
+    
+    context "when a proc subdomain is specified in the route" do          
+      before(:each) do
+        map_subdomain(:proc => :blog?) { |blog| blog.resources :articles }
+        
+        SubdomainRoutes::Config.subdomain_proc :blog? do |subdomain|
+          case subdomain
+          when "recognised" then true
+          when "to-www" then :www
+          when "to-nil" then nil
+          else false
+          end
+        end
+      end
+      
+      it "should not change the host if the subdomain proc returns true" do
+        with_host "recognised.example.com" do
+          articles_url.should == "http://recognised.example.com/articles"
+          articles_path.should == "/articles"
+        end
+      end
+  
+      it "should raise an error if the subdomain proc returns false" do
+        with_host "unrecognised.example.com" do
+          lambda { articles_url  }.should raise_error(ActionController::RoutingError)
+          lambda { articles_path }.should raise_error(ActionController::RoutingError)
+        end
+      end
+
+      it "should force the host if the subdomain proc returns a different host" do
+        with_host "to-www.example.com" do
+           articles_url.should == "http://www.example.com/articles"
+          articles_path.should == "http://www.example.com/articles"
+        end
+        with_host "to-nil.example.com" do
+           articles_url.should == "http://example.com/articles"
+          articles_path.should == "http://example.com/articles"
+        end
+      end
+      
+      context "and a subdomain matching the route is explicitly requested" do
+        
       end
     end
   end  

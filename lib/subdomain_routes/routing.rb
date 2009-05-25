@@ -6,13 +6,16 @@ module SubdomainRoutes
       module Mapper
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
-          if subdomains.size == 1 && subdomains.first.is_a?(Proc)
-            name = options.delete(:name)
-            subdomain_options = { :subdomains => subdomains.first }
+          if subdomains.empty?
+            if proc = options.delete(:proc)
+              subdomain_options = { :subdomains => { :proc => proc } }
+              name = options.delete(:name)
+            else
+              raise ArgumentError, "Please specify at least one subdomain!"
+            end
           else
             subdomains.map! { |subdomain| subdomain.nil? ? subdomain : subdomain.to_s }
             subdomains.uniq!
-            raise ArgumentError, "Please specify at least one subdomain!" if subdomains.empty?
             subdomains.compact.each do |subdomain|
               raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]+$/
             end
@@ -22,7 +25,7 @@ module SubdomainRoutes
             name = options.has_key?(:name) ? options.delete(:name) : subdomains.compact.first
             subdomain_options = { :subdomains => subdomains }
           end
-          subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" if name
+          subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" unless name.blank?
           with_options(subdomain_options.merge(options), &block)
         end
         alias_method :subdomains, :subdomain
@@ -37,28 +40,13 @@ module SubdomainRoutes
         extract_request_environment_without_subdomain(request).merge(:subdomain => subdomain_for_host(request.host))
       end
     
-      # def add_route_with_subdomains(*args)
-      #   options = args.extract_options!
-      #   if subdomains = options.delete(:subdomains)
-      #     options[:conditions] ||= {}
-      #     options[:conditions][:subdomains] = subdomains
-      #     options[:requirements] ||= {}
-      #     options[:requirements][:subdomains] = subdomains
-      #   end
-      #   with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
-      # end
-
       def add_route_with_subdomains(*args)
         options = args.extract_options!
-        options[:conditions] ||= {}
-        options[:requirements] ||= {}
-        case subdomains = options.delete(:subdomains)
-        when Array
+        if subdomains = options.delete(:subdomains)
+          options[:conditions] ||= {}
           options[:conditions][:subdomains] = subdomains
+          options[:requirements] ||= {}
           options[:requirements][:subdomains] = subdomains
-        when Hash
-          options[:conditions][:subdomains] = subdomains[:recognize]
-          options[:requirements][:subdomains] = subdomains[:generate]
         end
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
       end
@@ -72,8 +60,12 @@ module SubdomainRoutes
       def recognition_conditions_with_subdomains
         result = recognition_conditions_without_subdomains
         # result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)" if conditions[:subdomains]
-        result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)"   if conditions[:subdomains].is_a? Array
-        result << "self.send(conditions[:subdomains][:recognize], env[:subdomain].to_s)" if conditions[:subdomains].is_a? Hash
+        case conditions[:subdomains]
+        when Array
+          result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)"
+        when Hash
+          result << "(self.send(conditions[:subdomains][:proc], env[:subdomain]) == true)"
+        end
         result
       end
     end

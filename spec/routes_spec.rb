@@ -33,10 +33,9 @@ describe SubdomainRoutes do
       map_subdomain(:admin, :support) { |map| map.options[:subdomains].should == [ "admin", "support" ] }
     end
     
-    # it "should accept a proc as the subdomain" do
-    #   proc = lambda { |context| context.current_user.user_name }
-    #   map_subdomain(proc) { |map| map.options[:subdomains].should == proc }
-    # end
+    it "should accept a proc option as the subdomain" do
+      map_subdomain(:proc => :method) { |map| map.options[:subdomains].should == { :proc => :method } }
+    end
       
     it "should raise ArgumentError if no subdomain is specified" do
       lambda { map_subdomain }.should raise_error(ArgumentError)
@@ -150,40 +149,39 @@ describe SubdomainRoutes do
       end
     end
     
-    # context "for a proc subdomain" do
-    #   before(:each) do
-    #     @proc = lambda { |context| context.current_user.username }
-    #   end
-    # 
-    #   it "should not set a namespace" do
-    #     map_subdomain(@proc) { |map| map.options[:namespace].should be_nil }
-    #   end
-    # 
-    #   it "should not set a named route prefix" do
-    #     map_subdomain(@proc) { |map| map.options[:name_prefix].should be_nil }
-    #   end
-    #   
-    #   it "should set a namespace to the name if specified" do
-    #     map_subdomain(@proc, :name => :something) { |map| map.options[:namespace].should == "something/" }
-    #   end
-    # 
-    #   it "should prefix the name to named routes if specified" do
-    #     map_subdomain(@proc, :name => :something) { |map| map.options[:name_prefix].should == "something_" }
-    #   end
-    # 
-    #   it "should add the specified subdomain to the route recognition conditions" do
-    #     map_subdomain(@proc) { |map| map.resouces :articles }
-    #     ActionController::Routing::Routes.routes.each do |route|
-    #       route.conditions[:subdomains].should == @proc
-    #     end
-    #   end
-    # 
-    #   it "should not add a subdomain to the route generation requirements" do
-    #     map_subdomain(@proc) { |map| map.resouces :articles }
-    #     ActionController::Routing::Routes.routes.each do |route|
-    #       route.requirements[:subdomains].should == @proc
-    #     end
-    #   end
-    # end
+    context "for a proc subdomain" do
+      it "should raise an error if ApplicationController is not defined"
+      it "should raise an error if the proc is not a method on ApplicationController"
+      
+      it "should not set a namespace" do
+        map_subdomain(:proc => :method) { |map| map.options[:namespace].should be_nil }
+      end
+    
+      it "should not set a named route prefix" do
+        map_subdomain(:proc => :method) { |map| map.options[:name_prefix].should be_nil }
+      end
+      
+      it "should set a namespace to the name if specified" do
+        map_subdomain(:proc => :method, :name => :something) { |map| map.options[:namespace].should == "something/" }
+      end
+    
+      it "should prefix the name to named routes if specified" do
+        map_subdomain(:proc => :method, :name => :something) { |map| map.options[:name_prefix].should == "something_" }
+      end
+    
+      it "should add the specified proc to the route recognition conditions" do
+        map_subdomain(:proc => :method) { |map| map.resources :items }
+        ActionController::Routing::Routes.routes.each do |route|
+          route.conditions[:subdomains].should == { :proc => :method }
+        end
+      end
+          
+      it "should not add a subdomain to the route generation requirements" do
+        map_subdomain(:proc => :method) { |map| map.resources :items }
+        ActionController::Routing::Routes.routes.each do |route|
+          route.requirements[:subdomains].should == { :proc => :method }
+        end
+      end
+    end
   end
 end
