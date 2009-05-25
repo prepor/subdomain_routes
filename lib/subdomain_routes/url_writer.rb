@@ -9,14 +9,14 @@ module SubdomainRoutes
       if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
         new_subdomain = options.has_key?(:subdomain) ? options[:subdomain] : old_subdomain
-        unless subdomains.map(&:to_s).include? new_subdomain.to_s
+        unless subdomains.any? { |subdomain| subdomain.nil? ? new_subdomain.nil? : new_subdomain.to_s == subdomain.to_s }
           if subdomains.size > 1 || options.has_key?(:subdomain)
             raise ActionController::RoutingError, "route for #{options.inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{new_subdomain.inspect}"
           else
             new_subdomain = subdomains.first
           end
         end
-        unless old_subdomain == new_subdomain
+        unless new_subdomain.to_s == old_subdomain.to_s
           options[:only_path] = false
           options[:host] = [ new_subdomain, domain ].compact.join('.')
         end

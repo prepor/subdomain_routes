@@ -27,7 +27,16 @@ describe SubdomainRoutes do
         end
       end
     end
-        
+
+    # 
+    # it "should work with" do
+    #   map_subdomain(:www) { |www| www.resources :items }
+    #   with_host "www.example.com" do
+    #     www_items_path(:subdomain => "www").should == "/items"
+    #     www_items_path(:subdomain => :www).should == "/items"
+    #   end
+    # end
+
     [ [ "single", :admin, "admin.example.com" ],
       [    "nil",    nil,       "example.com" ] ].each do |type, subdomain, host|
       context "when a #{type} subdomain is specified in the route" do
@@ -49,14 +58,14 @@ describe SubdomainRoutes do
             polymorphic_url(@user).should == "http://#{host}/users/#{@user.to_param}"
           end
         end
-      
+
         it "should not force the host for a path if the host subdomain matches" do
           with_host(host) do
                    user_path(@user).should == "/users/#{@user.to_param}"
             polymorphic_path(@user).should == "/users/#{@user.to_param}"
           end
         end
-      
+
         it "should force the host for a path if the host subdomain differs" do
           with_host "other.example.com" do
                    user_path(@user).should == "http://#{host}/users/#{@user.to_param}"
@@ -76,6 +85,15 @@ describe SubdomainRoutes do
             with_host(host) do
               lambda {        user_path(@user, :subdomain => :other) }.should raise_error(ActionController::RoutingError)
               lambda { polymorphic_path(@user, :subdomain => :other) }.should raise_error(ActionController::RoutingError)
+            end
+          end
+        end
+        
+        context "and the current host's subdomain is explicitly requested" do
+          it "should not force the host for a path if the subdomain matches" do
+            with_host(host) do
+                     user_path(@user, :subdomain => subdomain).should == "/users/#{@user.to_param}"
+              polymorphic_path(@user, :subdomain => subdomain).should == "/users/#{@user.to_param}"
             end
           end
         end
