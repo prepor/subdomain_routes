@@ -71,6 +71,3 @@ def new_class(*names)
 end
 
 new_class :item, :user
-# TODO: figure out how to reload ActionController::Routing::Route, ActionController::UrlWriter,
-# ActionController::UrlRewriter between each test, so that the proc route tests don't interfere
-# with each other!!

@@ -6,6 +6,7 @@ module SubdomainRoutes
       module Mapper
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
+          name = nil
           if subdomains.empty?
             if subdomain = options.delete(:proc)
               subdomain_options = { :subdomains => { :proc => subdomain } }
@@ -15,9 +16,10 @@ module SubdomainRoutes
             end
           else
             subdomains.map!(&:to_s)
+            subdomains.map!(&:downcase)
             subdomains.uniq!
             subdomains.compact.each do |subdomain|
-              raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]*$/
+              raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^([a-z][0-9a-z\-]*|)$/
             end
             if subdomains.include? ""
               raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length
@@ -26,6 +28,7 @@ module SubdomainRoutes
             subdomain_options = { :subdomains => subdomains }
           end
           name = options.delete(:name) if options.has_key?(:name)
+          name = name.to_s.downcase.gsub(/[^(a-z0-9)]/, ' ').squeeze(' ').strip.gsub(' ', '_') unless name.blank?
           subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" unless name.blank?
           with_options(subdomain_options.merge(options), &block)
         end
@@ -33,12 +36,11 @@ module SubdomainRoutes
       end
 
       def self.included(base)
-        base.alias_method_chain :extract_request_environment, :subdomain
-        base.alias_method_chain :add_route, :subdomains
+        [ :extract_request_environment, :add_route, :clear! ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
-      def extract_request_environment_with_subdomain(request)
-        extract_request_environment_without_subdomain(request).merge(:subdomain => subdomain_for_host(request.host))
+      def extract_request_environment_with_subdomains(request)
+        extract_request_environment_without_subdomains(request).merge(:subdomain => subdomain_for_host(request.host))
       end
     
       def add_route_with_subdomains(*args)
@@ -53,13 +55,25 @@ module SubdomainRoutes
       end
       
       def verify_subdomain(name, &block)
-        (class << self; self; end).send(:define_method, "#{name}_subdomain?", &block)
+        method = "#{name}_subdomain?"
+        (class << self; self; end).send(:define_method, method, &block)
+        @subdomain_procs ||= []
+        @subdomain_procs << method
         # TODO: test this
       end
 
       def generate_subdomain(name, &block)
-        (class << self; self; end).send(:define_method, "#{name}_subdomain", &block)
+        method = "#{name}_subdomain"
+        (class << self; self; end).send(:define_method, method, &block)
+        @subdomain_procs ||= []
+        @subdomain_procs << method
         # TODO: test this
+      end
+      
+      def clear_with_subdomains!
+        @subdomain_procs.each { |proc| self.class_eval { remove_method proc } } if @subdomain_procs
+        remove_instance_variable("@subdomain_procs") if instance_variable_defined?("@subdomain_procs")
+        clear_without_subdomains!
       end
     end
   
@@ -88,3 +102,4 @@ end
 ActionController::Routing::RouteSet::Mapper.send :include, SubdomainRoutes::Routing::RouteSet::Mapper
 ActionController::Routing::RouteSet.send :include, SubdomainRoutes::Routing::RouteSet
 ActionController::Routing::Route.send :include, SubdomainRoutes::Routing::Route
+# TODO: split this file?

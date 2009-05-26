@@ -23,7 +23,7 @@ module SubdomainRoutes
             verify   = "#{subdomains[:proc]}_subdomain?"
             generate = "#{subdomains[:proc]}_subdomain"
             if ActionController::Routing::Routes.respond_to?(generate)
-              # TODO: raise error if options.has_key?[:subdomain] ? (Or just ignore it?)
+              raise ActionController::RoutingError, "Can't specify a subdomain for this route" if options.has_key?(:subdomain)
               generate_options = {}
               generate_options[:session] = @request.session if @request
               generate_options[:generate] = options.delete(:generate) if options[:generate]
