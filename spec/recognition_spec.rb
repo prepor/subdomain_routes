@@ -65,36 +65,41 @@ describe SubdomainRoutes do
       end
     end
     
-    context "for a proc subdomain" do
+    context "for a :proc subdomain" do
       before(:each) do
-        map_subdomain(:proc => :blog?) { |blog| blog.resources :articles }
-        
-        @request = ActionController::TestRequest.new
-        @request.request_uri = "/articles"
-        
-        SubdomainRoutes::Config.subdomain_proc :blog? do |subdomain|
-          case subdomain
-          when "recognised" then true
-          when "redirect" then :www
-          else false
+        ActionController::Routing::Routes.verify_subdomain :user do |user|
+          case user
+          when "mholling" then true
+          when "edmondst" then Object.new
+          when "false" then false
+          when "nil" then nil
           end
         end
+        map_subdomain(:proc => :user) { |user| user.resources :articles }
+        @request = ActionController::TestRequest.new
+        @request.request_uri = "/articles"
       end
-      
-      it "should match the route if the proc returns true" do
-        @request.host = "recognised.example.com"
+    
+      it "should match the route if the verify proc returns true" do
+        @request.host = "mholling.example.com"
         lambda { recognize_path(@request) }.should_not raise_error
       end
-      
-      it "should not match the route if the proc returns a different subdomain" do
-        @request.host = "redirect.example.com".sub(/^\./, '')
+    
+      it "should match the route if the verify proc returns an object" do
+        @request.host = "edmondst.example.com"
+        lambda { recognize_path(@request) }.should_not raise_error
+      end
+    
+      it "should not match the route if the verify proc returns false" do
+        @request.host = "false.example.com"
         lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
       end
-      
-      it "should not match the route if the proc returns false" do
-        @request.host = "unrecognised.example.com".sub(/^\./, '')
+    
+      it "should not match the route if the verify proc returns nil" do
+        @request.host = "nil.example.com"
         lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
       end
     end
+
   end
 end

@@ -30,7 +30,7 @@ describe SubdomainRoutes do
 
     [ [ "single", :admin, "admin.example.com" ],
       [    "nil",    nil,       "example.com" ] ].each do |type, subdomain, host|
-      context "when a #{type} subdomain is specified in the route" do
+      context "when a #{type} subdomain is specified" do
         before(:each) do
           map_subdomain(subdomain, :name => nil) { |map| map.resources :users }
           @user = User.create
@@ -93,7 +93,7 @@ describe SubdomainRoutes do
     
     [ [               "", [ :books, :dvds ], [ "books.example.com", "dvds.example.com" ] ],
       [ " including nil",     [ nil, :www ], [       "example.com",  "www.example.com" ] ] ].each do |qualifier, subdomains, hosts|
-      context "when multiple subdomains#{qualifier} are specified in the route" do
+      context "when multiple subdomains#{qualifier} are specified" do
         before(:each) do
           args = subdomains + [ :name => nil ]
           map_subdomain(*args) { |map| map.resources :items }
@@ -151,47 +151,82 @@ describe SubdomainRoutes do
       end
     end
     
-    context "when a proc subdomain is specified in the route" do          
+    context "when a :proc subdomain is specified" do          
       before(:each) do
-        map_subdomain(:proc => :blog?) { |blog| blog.resources :articles }
+        ActionController::Routing::Routes.verify_subdomain(:city) { |city| [ "boston", "canberra" ].include? city }
+        map_subdomain(:proc => :city) { |city| city.resources :events }
+      end
+      
+      it "should not change the host if the verify proc returns true" do
+        with_host "boston.example.com" do
+          city_events_url.should == "http://boston.example.com/events"
+          city_events_path.should == "/events"
+        end
+      end
+      
+      it "should raise an error if the verify proc returns false" do
+        with_host "www.example.com" do
+          lambda { city_events_url  }.should raise_error(ActionController::RoutingError)
+          lambda { city_events_path }.should raise_error(ActionController::RoutingError)
+        end
+      end
+      
+      context "and a generate proc is also defined" do
+        before(:each) do
+          ActionController::Routing::Routes.generate_subdomain(:city) { "boston" }
+        end
         
-        SubdomainRoutes::Config.subdomain_proc :blog? do |subdomain|
-          case subdomain
-          when "recognised" then true
-          when "to-www" then :www
-          when "to-nil" then nil
-          else false
+        it "should not force the host if the generated subdomain is the same as the host subdomain" do
+          with_host "boston.example.com" do
+            city_events_url.should == "http://boston.example.com/events"
+            city_events_path.should == "/events"
+          end
+        end
+        
+        it "should force the host if the generated subdomain differs from the host subdomain" do
+          with_host "www.example.com" do
+            city_events_url.should == "http://boston.example.com/events"
+            city_events_path.should == "http://boston.example.com/events"
           end
         end
       end
-      
-      it "should not change the host if the subdomain proc returns true" do
-        with_host "recognised.example.com" do
-          articles_url.should == "http://recognised.example.com/articles"
-          articles_path.should == "/articles"
-        end
-      end
-  
-      it "should raise an error if the subdomain proc returns false" do
-        with_host "unrecognised.example.com" do
-          lambda { articles_url  }.should raise_error(ActionController::RoutingError)
-          lambda { articles_path }.should raise_error(ActionController::RoutingError)
-        end
-      end
 
-      it "should force the host if the subdomain proc returns a different host" do
-        with_host "to-www.example.com" do
-           articles_url.should == "http://www.example.com/articles"
-          articles_path.should == "http://www.example.com/articles"
+      context "and a generate proc with options is also defined" do
+        before(:each) do
+          ActionController::Routing::Routes.generate_subdomain(:city) do |options|
+            user_id = case
+            when options[:session] then options[:session][:user_id]
+            when options[:generate] then options[:generate][:user_id]
+            end
+            case user_id
+            when 1 then "boston"
+            when 2 then "canberra"
+            when nil then raise ActionController::RoutingError, "Can't generate route without a user_id!"
+            end
+          end
         end
-        with_host "to-nil.example.com" do
-           articles_url.should == "http://example.com/articles"
-          articles_path.should == "http://example.com/articles"
-        end
-      end
-      
-      context "and a subdomain matching the route is explicitly requested" do
         
+        it "should generate the URL in a controller using the session" do
+          in_controller_with_host "www.example.com" do
+            request.session[:user_id] = 2
+            city_events_url.should == "http://canberra.example.com/events"
+            city_events_path.should == "http://canberra.example.com/events"
+          end
+        end
+        
+        it "should generate the URL in an object using :generate options" do
+          in_object_with_host "www.example.com" do
+            city_events_url(:generate => { :user_id => 2 }).should == "http://canberra.example.com/events"
+            city_events_path(:generate => { :user_id => 2 }).should == "http://canberra.example.com/events"
+          end
+        end
+        
+        it "should raise a routing error if the generate proc raises a routing error" do
+          with_host "www.example.com" do
+            lambda { city_events_url }.should raise_error(ActionController::RoutingError)
+            lambda { city_events_path }.should raise_error(ActionController::RoutingError)
+          end
+        end
       end
     end
   end  

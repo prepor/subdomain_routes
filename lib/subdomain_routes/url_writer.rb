@@ -19,17 +19,21 @@ module SubdomainRoutes
             end
           end
         when Hash
-          subdomain = self.send(subdomains[:proc], old_subdomain)
-          case subdomain
-          when true
-          when Symbol, String, nil
-            if options.has_key?(:subdomain) && options[:subdomain].to_s != subdomain.to_s
-              raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{options[:subdomain].inspect} not valid, require subdomain: #{subdomain.inspect}"
+          if subdomains[:proc]
+            verify   = "#{subdomains[:proc]}_subdomain?"
+            generate = "#{subdomains[:proc]}_subdomain"
+            if ActionController::Routing::Routes.respond_to?(generate)
+              # TODO: raise error if options.has_key?[:subdomain] ? (Or just ignore it?)
+              generate_options = {}
+              generate_options[:session] = @request.session if @request
+              generate_options[:generate] = options.delete(:generate) if options[:generate]
+              new_subdomain = ActionController::Routing::Routes.send(generate, generate_options.with_indifferent_access)
+              # TODO: test this stuff! ^^^
+            elsif ActionController::Routing::Routes.respond_to?(verify) && ActionController::Routing::Routes.send(verify, new_subdomain)
             else
-              new_subdomain = subdomain
+              # TODO: test case where respond_to?(verify) returns false!
+              raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{new_subdomain} not valid"
             end
-          else
-            raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{new_subdomain.inspect} not valid"
           end
         end
         unless new_subdomain.to_s == old_subdomain.to_s

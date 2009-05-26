@@ -23,35 +23,36 @@ def recognize_path(request)
   ActionController::Routing::Routes.recognize_path(request.path, ActionController::Routing::Routes.extract_request_environment(request))
 end
 
-def in_controller(&block)
-  Class.new(ActionView::TestCase::TestController) do
-    include Spec::Matchers
-  end.new.instance_eval(&block)
-end
-
-def in_object(&block)
-  Class.new do
-    include Spec::Matchers
-    include ActionController::UrlWriter
-  end.new.instance_eval(&block)
-end
-
-def with_host(host, &block)
+def in_controller_with_host(host, &block)
   variables = instance_variables.inject([]) do |array, name|
     array << [ name, instance_variable_get(name) ]
   end
-  
-  in_controller do
+  Class.new(ActionView::TestCase::TestController) do
+    include Spec::Matchers
+  end.new.instance_eval do
     request.host = host
     variables.each { |name, value| instance_variable_set(name, value) }
     instance_eval(&block)
   end
-  
-  in_object do
+end
+
+def in_object_with_host(host, &block)
+  variables = instance_variables.inject([]) do |array, name|
+    array << [ name, instance_variable_get(name) ]
+  end
+  Class.new do
+    include Spec::Matchers
+    include ActionController::UrlWriter
+  end.new.instance_eval do
     self.class.default_url_options = { :host => host }
     variables.each { |name, value| instance_variable_set(name, value) }
     instance_eval(&block)
   end
+end
+
+def with_host(host, &block)
+  in_controller_with_host(host, &block)
+  in_object_with_host(host, &block)
 end
 
 def new_class(*names)
@@ -70,3 +71,6 @@ def new_class(*names)
 end
 
 new_class :item, :user
+# TODO: figure out how to reload ActionController::Routing::Route, ActionController::UrlWriter,
+# ActionController::UrlRewriter between each test, so that the proc route tests don't interfere
+# with each other!!

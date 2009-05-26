@@ -7,9 +7,9 @@ module SubdomainRoutes
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
           if subdomains.empty?
-            if proc = options.delete(:proc)
-              subdomain_options = { :subdomains => { :proc => proc } }
-              name = options.delete(:name)
+            if subdomain = options.delete(:proc)
+              subdomain_options = { :subdomains => { :proc => subdomain } }
+              name = subdomain
             else
               raise ArgumentError, "Please specify at least one subdomain!"
             end
@@ -22,9 +22,10 @@ module SubdomainRoutes
             if subdomains.include? nil
               raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length
             end
-            name = options.has_key?(:name) ? options.delete(:name) : subdomains.compact.first
+            name = subdomains.compact.first
             subdomain_options = { :subdomains => subdomains }
           end
+          name = options.delete(:name) if options.has_key?(:name)
           subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" unless name.blank?
           with_options(subdomain_options.merge(options), &block)
         end
@@ -50,6 +51,16 @@ module SubdomainRoutes
         end
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
       end
+      
+      def verify_subdomain(name, &block)
+        (class << self; self; end).send(:define_method, "#{name}_subdomain?", &block)
+        # TODO: test this
+      end
+
+      def generate_subdomain(name, &block)
+        (class << self; self; end).send(:define_method, "#{name}_subdomain", &block)
+        # TODO: test this
+      end
     end
   
     module Route
@@ -59,12 +70,14 @@ module SubdomainRoutes
       
       def recognition_conditions_with_subdomains
         result = recognition_conditions_without_subdomains
-        # result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)" if conditions[:subdomains]
         case conditions[:subdomains]
         when Array
           result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)"
         when Hash
-          result << "(self.send(conditions[:subdomains][:proc], env[:subdomain]) == true)"
+          if subdomain = conditions[:subdomains][:proc]
+            method = "#{subdomain}_subdomain?"
+            result << %Q{(ActionController::Routing::Routes.#{method}(env[:subdomain]) if ActionController::Routing::Routes.respond_to?(:#{method}))}
+          end
         end
         result
       end
