@@ -171,6 +171,14 @@ describe SubdomainRoutes do
         end
       end
       
+      it "should force the host if the verify proc returns false but a matching subdomain is supplied" do
+        pending # test was failing due to use of symbols. on hold until nil subdomain -> ""
+        # with_host "www.example.com" do
+        #   city_events_url(:subdomain => :boston).should == "http://boston.example.com/events"
+        #   city_events_path(:subdomain => :boston).should == "http://boston.example.com/events"
+        # end
+      end
+      
       context "and a generate proc is also defined" do
         before(:each) do
           ActionController::Routing::Routes.generate_subdomain(:city) { "boston" }
@@ -231,3 +239,5 @@ describe SubdomainRoutes do
     end
   end  
 end
+
+# TODO: change nil subdomain to "" string instead!!!
