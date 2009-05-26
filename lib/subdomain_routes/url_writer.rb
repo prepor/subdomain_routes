@@ -31,7 +31,6 @@ module SubdomainRoutes
               # TODO: test this stuff! ^^^
             elsif ActionController::Routing::Routes.respond_to?(verify) && ActionController::Routing::Routes.send(verify, new_subdomain)
             else
-              # TODO: test case where respond_to?(verify) returns false!
               raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{new_subdomain} not valid"
             end
           end
