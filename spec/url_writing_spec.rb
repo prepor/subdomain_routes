@@ -164,11 +164,12 @@ describe "URL writing" do
     
     context "and a verify proc is defined" do
       before(:each) do
-        ActionController::Routing::Routes.verify_subdomain(:city) { |city| [ "boston", "canberra" ].include? city }
+        ActionController::Routing::Routes.verify_subdomain(:city) { |city| } # this block will be stubbed
       end
     
       it "should not change the host if the verify proc returns true" do
         with_host "boston.example.com" do
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "boston").and_return(true)
           city_events_url.should == "http://boston.example.com/events"
           city_events_path.should == "/events"
         end
@@ -176,6 +177,7 @@ describe "URL writing" do
     
       it "should raise an error if the verify proc returns false" do
         with_host "www.example.com" do
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "www").and_return(false)
           lambda { city_events_url  }.should raise_error(ActionController::RoutingError)
           lambda { city_events_path }.should raise_error(ActionController::RoutingError)
         end
@@ -183,6 +185,7 @@ describe "URL writing" do
     
       it "should force the host if the verify proc returns false but a matching subdomain is supplied" do
         with_host "www.example.com" do
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "boston").and_return(true)
            city_events_url(:subdomain => :boston).should == "http://boston.example.com/events"
           city_events_path(:subdomain => :boston).should == "http://boston.example.com/events"
         end
@@ -190,6 +193,7 @@ describe "URL writing" do
     
       it "should raise an error if the verify proc returns false and a non-matching subdomain is supplied" do
         with_host "www.example.com" do
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "hobart").and_return(false)
           lambda {  city_events_url(:subdomain => :hobart) }.should raise_error(ActionController::RoutingError)
           lambda { city_events_path(:subdomain => :hobart) }.should raise_error(ActionController::RoutingError)
         end
@@ -197,67 +201,27 @@ describe "URL writing" do
     
       context "and a generate proc is also defined" do
         before(:each) do
-          ActionController::Routing::Routes.generate_subdomain(:city) { "boston" }
+          ActionController::Routing::Routes.generate_subdomain(:city) { |options| } # this block will be stubbed
         end
-
-        it "should raise an error if a subdomain is supplied" do
-          with_host "www.example.com" do
-            [ nil, :hobart, :boston ].each do |subdomain|
-              lambda {  city_events_url(:subdomain => :subdomain) }.should raise_error(ActionController::RoutingError)
-              lambda { city_events_path(:subdomain => :subdomain) }.should raise_error(ActionController::RoutingError)
-            end
-          end
-        end
-      
-        it "should not force the host if the generated subdomain is the same as the host subdomain" do
-          with_host "boston.example.com" do
-            city_events_url.should == "http://boston.example.com/events"
-            city_events_path.should == "/events"
-          end
-        end
-      
-        it "should force the host if the generated subdomain differs from the host subdomain" do
-          with_host "www.example.com" do
-             city_events_url.should == "http://boston.example.com/events"
-            city_events_path.should == "http://boston.example.com/events"
-          end
-        end
-      end
-
-      context "and a generate proc with options is also defined" do
-        before(:each) do
-          ActionController::Routing::Routes.generate_subdomain(:city) do |options|
-            user_id = case
-            when options[:session] then options[:session][:user_id]
-            when options[:generate] then options[:generate][:user_id]
-            end
-            case user_id
-            when 1 then "boston"
-            when 2 then "canberra"
-            when nil then raise ActionController::RoutingError, "Can't generate route without a user_id!"
-            end
-          end
-        end
-      
+    
         it "should generate the URL in a controller using the session" do
           in_controller_with_host "www.example.com" do
-            request.session[:user_id] = 2
-             city_events_url.should == "http://canberra.example.com/events"
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, :session => request.session).and_return("canberra")
             city_events_path.should == "http://canberra.example.com/events"
           end
         end
-      
-        it "should generate the URL in an object using :generate options" do
+    
+        it "should generate the URL in an object using a :generate option" do
           in_object_with_host "www.example.com" do
-             city_events_url(:generate => { :user_id => 2 }).should == "http://canberra.example.com/events"
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, :generate => { :user_id => 2 }).and_return("canberra")
             city_events_path(:generate => { :user_id => 2 }).should == "http://canberra.example.com/events"
           end
         end
-      
+    
         it "should raise a routing error if the generate proc raises a routing error" do
           with_host "www.example.com" do
-            lambda {  city_events_url }.should raise_error(ActionController::RoutingError)
-            lambda { city_events_path }.should raise_error(ActionController::RoutingError)
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_raise(ActionController::RoutingError.new("message"))
+            lambda { city_events_path() }.should raise_error(ActionController::RoutingError)
           end
         end
       end

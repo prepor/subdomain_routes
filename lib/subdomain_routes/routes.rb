@@ -22,25 +22,20 @@ module SubdomainRoutes
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
       end
       
+      def subdomain_procs
+        @subdomain_procs ||= SubdomainRoutes::ProcSet.new
+      end
+
       def verify_subdomain(name, &block)
-        method = "#{name}_subdomain?"
-        (class << self; self; end).send(:define_method, method, &block)
-        @subdomain_procs ||= []
-        @subdomain_procs << method
-        # TODO: test this
+        subdomain_procs.add_verifier(name, &block)
       end
 
       def generate_subdomain(name, &block)
-        method = "#{name}_subdomain"
-        (class << self; self; end).send(:define_method, method, &block)
-        @subdomain_procs ||= []
-        @subdomain_procs << method
-        # TODO: test this
+        subdomain_procs.add_generator(name, &block)
       end
       
       def clear_with_subdomains!
-        @subdomain_procs.each { |proc| self.class_eval { remove_method proc } } if @subdomain_procs
-        remove_instance_variable("@subdomain_procs") if instance_variable_defined?("@subdomain_procs")
+        subdomain_procs.clear!
         clear_without_subdomains!
       end
     end
@@ -57,8 +52,7 @@ module SubdomainRoutes
           result << "conditions[:subdomains].include?(env[:subdomain])"
         when Hash
           if subdomain = conditions[:subdomains][:proc]
-            method = "#{subdomain}_subdomain?"
-            result << %Q{(ActionController::Routing::Routes.#{method}(env[:subdomain]) if ActionController::Routing::Routes.respond_to?(:#{method}))}
+            result << %Q{ActionController::Routing::Routes.subdomain_procs.verify(#{subdomain.inspect}, env[:subdomain])}
           end
         end
         result

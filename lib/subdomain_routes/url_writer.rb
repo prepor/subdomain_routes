@@ -19,17 +19,14 @@ module SubdomainRoutes
             end
           end
         when Hash
-          if subdomains[:proc]
-            verify   = "#{subdomains[:proc]}_subdomain?"
-            generate = "#{subdomains[:proc]}_subdomain"
-            if ActionController::Routing::Routes.respond_to?(generate)
+          if name = subdomains[:proc]
+            if ActionController::Routing::Routes.subdomain_procs.generates?(name)
               raise ActionController::RoutingError, "Can't specify a subdomain for this route" if options.has_key?(:subdomain)
               generate_options = {}
               generate_options[:session] = @request.session if @request
               generate_options[:generate] = options.delete(:generate) if options[:generate]
-              new_subdomain = ActionController::Routing::Routes.send(generate, generate_options.with_indifferent_access).to_s
-              # TODO: test this stuff! ^^^
-            elsif ActionController::Routing::Routes.respond_to?(verify) && ActionController::Routing::Routes.send(verify, new_subdomain)
+              new_subdomain = ActionController::Routing::Routes.subdomain_procs.generate(name, generate_options).to_s
+            elsif ActionController::Routing::Routes.subdomain_procs.verify(name, new_subdomain)
             else
               raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{new_subdomain} not valid"
             end

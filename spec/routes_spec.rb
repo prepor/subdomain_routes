@@ -202,25 +202,31 @@ describe "subdomain routes" do
         route.requirements[:subdomains].should == { :proc => :city }
       end
     end
-    
-    it "should add a subdomain verification method to ActionController::Routing::Routes" do
-      ActionController::Routing::Routes.should_not respond_to("city_subdomain?")
-      ActionController::Routing::Routes.verify_subdomain(:city) { |city| city == "perth" }
-      ActionController::Routing::Routes.should respond_to("city_subdomain?")
-    end
-    
-    it "should add a subdomain generation method to ActionController::Routing::Routes" do
-      ActionController::Routing::Routes.should_not respond_to("city_subdomain")
-      ActionController::Routing::Routes.generate_subdomain(:city) { "perth" }
-      ActionController::Routing::Routes.should respond_to("city_subdomain")
-    end
+  end
+end
 
-    it "should clear subdomain verification and generation methods when ActionController::Routing::Routes are cleared" do
-      ActionController::Routing::Routes.verify_subdomain(:city) { |city| city == "perth" }
-      ActionController::Routing::Routes.generate_subdomain(:city) { "perth" }
-      ActionController::Routing::Routes.clear!
-      ActionController::Routing::Routes.should_not respond_to("city_subdomain?")
-      ActionController::Routing::Routes.should_not respond_to("city_subdomain")
-    end
+describe ActionController::Routing::Routes do
+  before(:each) do
+    ActionController::Routing::Routes.clear!
+  end
+
+  it "should allow a subdomain verification method to be added" do
+    ActionController::Routing::Routes.subdomain_procs.verifies?(:city).should be_false
+    ActionController::Routing::Routes.verify_subdomain(:city) { |city| city == "perth" }
+    ActionController::Routing::Routes.subdomain_procs.verifies?(:city).should be_true
+  end
+  
+  it "should allow a subdomain generation method to be added" do
+    ActionController::Routing::Routes.subdomain_procs.generates?(:city).should be_false
+    ActionController::Routing::Routes.generate_subdomain(:city) { "perth" }
+    ActionController::Routing::Routes.subdomain_procs.generates?(:city).should be_true
+  end
+
+  it "should allow subdomain verification and generation methods to be cleared" do
+    ActionController::Routing::Routes.verify_subdomain(:city) { |city| city == "perth" }
+    ActionController::Routing::Routes.generate_subdomain(:city) { "perth" }
+    ActionController::Routing::Routes.clear!
+    ActionController::Routing::Routes.subdomain_procs.generates?(:city).should be_false
+    ActionController::Routing::Routes.subdomain_procs.verifies?(:city).should be_false
   end
 end
