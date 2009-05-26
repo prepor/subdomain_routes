@@ -14,15 +14,15 @@ module SubdomainRoutes
               raise ArgumentError, "Please specify at least one subdomain!"
             end
           else
-            subdomains.map! { |subdomain| subdomain.nil? ? subdomain : subdomain.to_s }
+            subdomains.map!(&:to_s)
             subdomains.uniq!
             subdomains.compact.each do |subdomain|
-              raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]+$/
+              raise ArgumentError, "Illegal subdomain: #{subdomain.inspect}" unless subdomain.to_s =~ /^[0-9a-z\-]*$/
             end
-            if subdomains.include? nil
+            if subdomains.include? ""
               raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length
             end
-            name = subdomains.compact.first
+            name = subdomains.reject(&:blank?).first
             subdomain_options = { :subdomains => subdomains }
           end
           name = options.delete(:name) if options.has_key?(:name)
@@ -72,7 +72,7 @@ module SubdomainRoutes
         result = recognition_conditions_without_subdomains
         case conditions[:subdomains]
         when Array
-          result << "conditions[:subdomains].map(&:to_s).include?(env[:subdomain].to_s)"
+          result << "conditions[:subdomains].include?(env[:subdomain])"
         when Hash
           if subdomain = conditions[:subdomains][:proc]
             method = "#{subdomain}_subdomain?"

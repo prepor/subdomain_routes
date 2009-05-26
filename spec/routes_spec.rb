@@ -18,7 +18,11 @@ describe SubdomainRoutes do
     end
 
     it "should accept a nil subdomain" do
-      map_subdomain(nil) { |map| map.options[:subdomains].should == [ nil ] }
+      map_subdomain(nil) { |map| map.options[:subdomains].should == [ "" ] }
+    end
+
+    it "should accept a blank subdomain" do
+      map_subdomain("") { |map| map.options[:subdomains].should == [ "" ] }
     end
 
     it "should accept a single specified subdomain" do
@@ -86,21 +90,29 @@ describe SubdomainRoutes do
     
     context "mapping the nil subdomain" do
       it "should not set a namespace" do
-        map_subdomain(nil) { |map| map.options[:namespace].should be_nil }
+        [ nil, "" ].each do |none|
+          map_subdomain(none) { |map| map.options[:namespace].should be_nil }
+        end
       end
 
       it "should not set a named route prefix" do
-        map_subdomain(nil) { |map| map.options[:name_prefix].should be_nil }
+        [ nil, "" ].each do |none|
+          map_subdomain(none) { |map| map.options[:name_prefix].should be_nil }
+        end
       end
     end
     
     context "mapping nil and other subdomains" do
       it "should set the first non-nil subdomain as a namespace" do
-        map_subdomain(nil, :www) { |map| map.options[:namespace].should == "www/" }
+        [ nil, "" ].each do |none|
+          map_subdomain(none, :www) { |map| map.options[:namespace].should == "www/" }
+        end
       end
 
       it "should prefix the first non-nil subdomain to named routes" do
-        map_subdomain(nil, :www) { |map| map.options[:name_prefix].should == "www_" }
+        [ nil, "" ].each do |none|
+          map_subdomain(none, :www) { |map| map.options[:name_prefix].should == "www_" }
+        end
       end
     end
     
@@ -176,7 +188,7 @@ describe SubdomainRoutes do
       end
         
       it "should not add a subdomain to the route generation requirements" do
-        # ActionController::Routing::Routes.verify_subdomain(:city) { |city| [ "boston", "canberra" ].include? city }
+        ActionController::Routing::Routes.verify_subdomain(:city) { |city| [ "boston", "canberra" ].include? city }
         # TODO: this ^ commenting ^ should raise an error, but doesn't because of interference
         # from the previous test...
         map_subdomain(:proc => :city) { |city| city.resources :events }

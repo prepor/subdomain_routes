@@ -8,10 +8,10 @@ module SubdomainRoutes
     def rewrite_subdomain_options(options, host)
       if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
-        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain] : old_subdomain
+        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_s : old_subdomain
         case subdomains
         when Array
-          unless subdomains.any? { |subdomain| subdomain.nil? ? new_subdomain.nil? : new_subdomain.to_s == subdomain }
+          unless subdomains.include? new_subdomain
             if subdomains.size > 1 || options.has_key?(:subdomain)
               raise ActionController::RoutingError, "route for #{options.inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{new_subdomain.inspect}"
             else
@@ -27,7 +27,7 @@ module SubdomainRoutes
               generate_options = {}
               generate_options[:session] = @request.session if @request
               generate_options[:generate] = options.delete(:generate) if options[:generate]
-              new_subdomain = ActionController::Routing::Routes.send(generate, generate_options.with_indifferent_access)
+              new_subdomain = ActionController::Routing::Routes.send(generate, generate_options.with_indifferent_access).to_s
               # TODO: test this stuff! ^^^
             elsif ActionController::Routing::Routes.respond_to?(verify) && ActionController::Routing::Routes.send(verify, new_subdomain)
             else
@@ -36,34 +36,14 @@ module SubdomainRoutes
             end
           end
         end
-        unless new_subdomain.to_s == old_subdomain.to_s
+        unless new_subdomain == old_subdomain
           options[:only_path] = false
-          options[:host] = [ new_subdomain, domain ].compact.join('.')
+          options[:host] = [ new_subdomain, domain ].reject(&:blank?).join('.')
         end
         options.delete(:subdomains)
         options.delete(:subdomain)
       end
     end
-    
-    # def rewrite_subdomain_options(options, host)
-    #   if subdomains = options[:subdomains]
-    #     old_subdomain, domain = split_host(host)
-    #     new_subdomain = options.has_key?(:subdomain) ? options[:subdomain] : old_subdomain
-    #     unless subdomains.any? { |subdomain| subdomain.nil? ? new_subdomain.nil? : new_subdomain.to_s == subdomain }
-    #       if subdomains.size > 1 || options.has_key?(:subdomain)
-    #         raise ActionController::RoutingError, "route for #{options.inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{new_subdomain.inspect}"
-    #       else
-    #         new_subdomain = subdomains.first
-    #       end
-    #     end
-    #     unless new_subdomain.to_s == old_subdomain.to_s
-    #       options[:only_path] = false
-    #       options[:host] = [ new_subdomain, domain ].compact.join('.')
-    #     end
-    #     options.delete(:subdomains)
-    #     options.delete(:subdomain)
-    #   end
-    # end
   end
     
   module UrlWriter

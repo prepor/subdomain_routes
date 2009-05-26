@@ -15,9 +15,9 @@ module SubdomainRoutes
         if parts.size > 1
           raise TooManySubdomains, "Multiple subdomains found: #{parts.join('.')}. (Have you set SubdomainRoutes::Config.domain_length correctly?)"
         end
-        [ parts.pop, domain_parts.join('.') ]
+        [ parts.pop.to_s, domain_parts.join('.') ]
       else
-        [ parts.shift, parts.join('.') ]
+        [ parts.shift.to_s, parts.join('.') ]
       end
     end
     

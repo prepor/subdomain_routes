@@ -239,5 +239,3 @@ describe SubdomainRoutes do
     end
   end  
 end
-
-# TODO: change nil subdomain to "" string instead!!!

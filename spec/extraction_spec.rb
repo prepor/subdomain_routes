@@ -54,8 +54,8 @@ describe SubdomainRoutes do
         subdomain_for_host("www.example.com").should == "www"
       end
   
-      it "should find nil when subdomain is absent" do
-        subdomain_for_host("example.com").should be_nil
+      it "should return an empty string when subdomain is absent" do
+        subdomain_for_host("example.com").should == ""
       end
     
       context "with multi-level subdomains" do
