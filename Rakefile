@@ -16,7 +16,7 @@ begin
     gem.email = "mdholling@gmail.com"
     gem.homepage = "http://github.com/mholling/subdomain_routes"
     gem.authors = ["Matthew Hollingworth"]
-    gem.add_dependency 'actionpack'
+    gem.add_dependency 'actionpack', ">= 2.2.1" # requires ActiveSupport::Memoizable
     gem.has_rdoc = false
 
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings

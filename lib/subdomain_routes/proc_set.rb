@@ -1,5 +1,7 @@
 module SubdomainRoutes
   class ProcSet
+    extend ActiveSupport::Memoizable
+    
     def initialize
       clear!
     end
@@ -30,9 +32,17 @@ module SubdomainRoutes
       raise ActionController::RoutingError, "route failed to generate: #{e.message}"
     end
     
+    memoize :verify
+    private :flush_cache
+    
+    def flush!
+      flush_cache :verify
+    end
+    
     def clear!
       @verifiers = {}
       @generators = {}
+      flush!
     end
   end
 end

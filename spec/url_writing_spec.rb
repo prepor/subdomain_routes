@@ -166,7 +166,7 @@ describe "URL writing" do
       before(:each) do
         ActionController::Routing::Routes.verify_subdomain(:city) { |city| } # this block will be stubbed
       end
-    
+      
       it "should not change the host if the verify proc returns true" do
         with_host "boston.example.com" do
           ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "boston").and_return(true)

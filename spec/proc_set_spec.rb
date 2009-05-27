@@ -5,9 +5,10 @@ describe "subdomain proc set" do
     @proc_set = SubdomainRoutes::ProcSet.new
   end
   
-  context "with a subdomain verifier"
+  context "with a subdomain verifier" do
     before(:each) do
-      @proc_set.add_verifier(:city) { |city| [ "boston", "canberra" ].include? city }
+      @city_block = Proc.new { |city| [ "boston", "canberra" ].include? city }
+      @proc_set.add_verifier(:city, &@city_block)
     end
 
     it "should indicate what subdomain it verifies" do
@@ -19,10 +20,29 @@ describe "subdomain proc set" do
       @proc_set.verify(:city, "boston").should be_true
       @proc_set.verify(:city, "hobart").should be_false
     end
-    
+  
     it "should return nil if it can't verify the name" do
       @proc_set.verify(:user, "mholling").should be_nil
     end
+
+    it "should call the verify proc only once for multiple verifications" do
+      @city_block.should_receive(:call).with("boston").once
+      2.times { @proc_set.verify(:city, "boston") }
+    end
+    
+    it "should return the cached value according to the arguments" do
+      2.times { @proc_set.verify(:city, "boston").should be_true }
+      2.times { @proc_set.verify(:city, "hobart").should be_false }
+      2.times { @proc_set.verify(:user, "mholling").should be_nil }
+    end
+    
+    it "should call the verify proc again once the cache is flushed" do
+      @city_block.should_receive(:call).with("boston").twice
+      5.times { @proc_set.verify(:city, "boston") }
+      @proc_set.flush!
+      5.times { @proc_set.verify(:city, "boston") }
+    end
+  end
   
   context "with a generator" do
     before(:each) do

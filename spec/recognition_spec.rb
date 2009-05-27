@@ -40,10 +40,7 @@ describe "subdomain route recognition" do
       it "should recognise a route if there is no subdomain present" do
         map_subdomain(subdomain) { |map| map.resources :items }
         @request.host = "example.com"
-        params = recognize_path(@request)
-        params[:controller].should == "items"
-        params[:action].should == "show"
-        params[:id].should == "2"
+        lambda { recognize_path(@request) }.should_not raise_error
       end
     end
   end
@@ -51,10 +48,7 @@ describe "subdomain route recognition" do
   context "for multiple specified subdomains" do
     it "should recognise a route if the subdomain matches" do
       map_subdomain(:www, :admin, :name => nil) { |map| map.resources :items }
-      params = recognize_path(@request)
-      params[:controller].should == "items"
-      params[:action].should == "show"
-      params[:id].should == "2"
+      lambda { recognize_path(@request) }.should_not raise_error
     end
   
     it "should not recognise a route if the subdomain doesn't match" do
@@ -65,22 +59,12 @@ describe "subdomain route recognition" do
   
   context "for a :proc subdomain" do
     before(:each) do
-      ActionController::Routing::Routes.verify_subdomain(:user) { |user| } # this block will be stubbed
+      @user_block = lambda { |user| } # this block will be stubbed
+      ActionController::Routing::Routes.verify_subdomain(:user, &@user_block)
       map_subdomain(:proc => :user) { |user| user.resources :articles }
       @request.request_uri = "/articles"
       @request.host = "mholling.example.com"
     end
-    
-    it "should call the verify proc only once per recognition" do
-      pending
-      [ true, false ].each do |value|
-        [ '/articles', '/articles/new', '/articles/1', '/articles/1/edit' ].each do |path|
-          @request.request_uri = path
-          ActionController::Routing::Routes.should_receive(:user_subdomain?).once.with("mholling").and_return(value)
-          recognize_path(@request)
-        end
-      end
-    end   
   
     it "should match the route if the verify proc returns true or an object" do
       [ true, Object.new ].each do |value|
@@ -94,6 +78,23 @@ describe "subdomain route recognition" do
         ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).any_number_of_times.with(:user, "mholling").and_return(value)
         lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
       end
+    end
+    
+    it "should not call the verify proc more than once" do
+      [ true, false ].each do |value|
+        [ "/articles", "/articles/new", "/articles/1", "/articles/1/edit" ].each do |path|
+          @request.request_uri = path
+          @user_block.should_receive(:call).with("mholling").once
+          begin; recognize_path(@request); rescue ActionController::RoutingError; end
+        end
+      end
+    end
+    
+    it "should clear cached values between successive recognitions" do
+      @user_block.should_receive(:call).with("mholling").once.and_return(false)
+      lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+      @user_block.should_receive(:call).with("mholling").once.and_return(true)
+      lambda { recognize_path(@request) }.should_not raise_error
     end
   end
   

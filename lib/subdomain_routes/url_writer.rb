@@ -28,7 +28,7 @@ module SubdomainRoutes
               new_subdomain = ActionController::Routing::Routes.subdomain_procs.generate(name, generate_options).to_s
             elsif ActionController::Routing::Routes.subdomain_procs.verify(name, new_subdomain)
             else
-              raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{new_subdomain} not valid"
+              raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{new_subdomain.inspect} not valid"
             end
           end
         end
