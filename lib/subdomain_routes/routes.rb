@@ -42,7 +42,6 @@ module SubdomainRoutes
       def recognize_path_with_subdomains(path, environment = {})
         subdomain_procs.flush!
         recognize_path_without_subdomains(path, environment)
-        # TODO: is there anywhere else in ActionController we can put flush! In :call maybe?
         # TODO: what about stale cache in ActionMailer and other classes where UrlWriter is included?
       end
     end

@@ -23,6 +23,8 @@ module SubdomainRoutes
             if ActionController::Routing::Routes.subdomain_procs.generates?(name)
               raise ActionController::RoutingError, "Can't specify a subdomain for this route" if options.has_key?(:subdomain)
               generate_options = {}
+              # TODO: do we want to pass in the request instead of the session?
+              # TODO: is the options thing a bit awkward?
               generate_options[:session] = @request.session if @request
               generate_options[:generate] = options.delete(:generate) if options[:generate]
               new_subdomain = ActionController::Routing::Routes.subdomain_procs.generate(name, generate_options).to_s

@@ -97,13 +97,4 @@ describe "subdomain route recognition" do
       lambda { recognize_path(@request) }.should_not raise_error
     end
   end
-  
-  # 1. TODO: can we stub out anything else instead of contrived examples?
-  # 
-  # 2. TODO: Investigate how to optimise :verify_subdomain proc-based recognition condition.
-  #    It gets called once for every route under that subdomain (unless the route gets
-  #    recognised first). So that could be very expensive if the proc makes a db call.
-  #    The result of the method call needs to be cached somehow (but cache needs to be reset
-  #    on every request cycle, otherwise it could get stale). THIS IS IMPORTANT! (Maybe we
-  #    could use memoize?)
 end
