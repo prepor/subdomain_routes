@@ -13,7 +13,7 @@ module SubdomainRoutes
         when Array
           unless subdomains.include? new_subdomain
             if subdomains.size > 1 || options.has_key?(:subdomain)
-              raise ActionController::RoutingError, "route for #{options.inspect} failed to generate, expected subdomain in: #{subdomains.inspect}, instead got subdomain: #{new_subdomain.inspect}"
+              raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (expected subdomain in #{subdomains.inspect}, instead got subdomain #{new_subdomain.inspect})"
             else
               new_subdomain = subdomains.first
             end
@@ -22,15 +22,10 @@ module SubdomainRoutes
           if name = subdomains[:proc]
             if ActionController::Routing::Routes.subdomain_procs.generates?(name)
               raise ActionController::RoutingError, "Can't specify a subdomain for this route" if options.has_key?(:subdomain)
-              generate_options = {}
-              # TODO: do we want to pass in the request instead of the session?
-              # TODO: is the options thing a bit awkward?
-              generate_options[:session] = @request.session if @request
-              generate_options[:generate] = options.delete(:generate) if options[:generate]
-              new_subdomain = ActionController::Routing::Routes.subdomain_procs.generate(name, generate_options).to_s
+              new_subdomain = ActionController::Routing::Routes.subdomain_procs.generate(name, @request, options.delete(:generate)).to_s
             elsif ActionController::Routing::Routes.subdomain_procs.verify(name, new_subdomain)
             else
-              raise ActionController::RoutingError, "route for #{options.inspect} failed to generate: subdomain #{new_subdomain.inspect} not valid"
+              raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (subdomain #{new_subdomain.inspect} not valid)"
             end
           end
         end

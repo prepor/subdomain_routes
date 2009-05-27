@@ -40,7 +40,7 @@ module SubdomainRoutes
       end
       
       def recognize_path_with_subdomains(path, environment = {})
-        subdomain_procs.flush!
+        subdomain_procs.flush! unless SubdomainRoutes::Config.manual_flush
         recognize_path_without_subdomains(path, environment)
         # TODO: what about stale cache in ActionMailer and other classes where UrlWriter is included?
       end

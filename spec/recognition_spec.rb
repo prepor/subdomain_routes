@@ -96,5 +96,18 @@ describe "subdomain route recognition" do
       @user_block.should_receive(:call).with("mholling").once.and_return(true)
       lambda { recognize_path(@request) }.should_not raise_error
     end
+    
+    context "when the :manual_flush config option is set" do
+      before(:each) do
+        SubdomainRoutes::Config.stub!(:manual_flush).and_return(true)
+      end
+
+      it "should not clear cached values between successive recognitions" do
+        @user_block.should_receive(:call).with("mholling").once.and_return(false)
+        lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+        @user_block.should_not_receive(:call)
+        lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+      end
+    end
   end
 end

@@ -201,20 +201,20 @@ describe "URL writing" do
     
       context "and a generate proc is also defined" do
         before(:each) do
-          ActionController::Routing::Routes.generate_subdomain(:city) { |options| } # this block will be stubbed
+          ActionController::Routing::Routes.generate_subdomain(:city) { |request, options| } # this block will be stubbed
         end
     
         it "should generate the URL in a controller using the session" do
           in_controller_with_host "www.example.com" do
-            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, :session => request.session).and_return("canberra")
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, request, nil).and_return("canberra")
             city_events_path.should == "http://canberra.example.com/events"
           end
         end
     
         it "should generate the URL in an object using a :generate option" do
           in_object_with_host "www.example.com" do
-            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, :generate => { :user_id => 2 }).and_return("canberra")
-            city_events_path(:generate => { :user_id => 2 }).should == "http://canberra.example.com/events"
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, nil, :city_id => 2 ).and_return("canberra")
+            city_events_path(:generate => { :city_id => 2 }).should == "http://canberra.example.com/events"
           end
         end
     
@@ -223,7 +223,7 @@ describe "URL writing" do
             ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_raise(ActionController::RoutingError.new("message"))
             lambda { city_events_path() }.should raise_error(ActionController::RoutingError)
           end
-        end
+        end        
       end
     end
   end
