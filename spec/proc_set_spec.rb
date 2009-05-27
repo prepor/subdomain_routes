@@ -44,39 +44,59 @@ describe "subdomain proc set" do
     end
   end
   
-  context "with a generator" do
+  context "with a generator proc" do
     before(:each) do
-      @proc_set.add_generator(:city) do |request, options|
-        case options[:city_id]
-        when 1 then "boston"
-        when 2 then "canberra"
-        else raise StandardError, "city doesn't exist"
-        end
+      @request = ActionController::TestRequest.new
+    end
+  
+    it "should raise a routing error if it doesn't generate the name" do
+      lambda { @proc_set.generate(:user, nil, nil) }.should raise_error(ActionController::RoutingError)
+    end
+    
+    context "taking one argument" do
+      before(:each) do
+        @block = lambda { |request| } # this generator block will be stubbed
+        @proc_set.add_generator(:city, &@block)
+      end
+    
+      it "should indicate what subdomain it generates" do
+        @proc_set.generates?(:city).should be_true
+        @proc_set.generates?(:user).should be_false
+      end
+    
+      it "should pass the request to the generator proc" do
+        @block.should_receive(:call).with(@request).and_return("boston")
+        @proc_set.generate(:city, @request, nil).should == "boston"
+      end
+    
+      it "should raise a routing error if the proc raises any error" do
+        @block.should_receive(:call).with(@request).and_raise(StandardError.new)
+        lambda { @proc_set.generate(:city, @request, nil) }.should raise_error(ActionController::RoutingError)
       end
     end
+
+    context "taking two arguments" do
+      before(:each) do
+        @block = lambda { |request, context| } # this generator block will be stubbed
+        @proc_set.add_generator(:city, &@block)
+        @context = { :city_id => 2 }
+      end
     
-    it "should indicate what subdomain it generates" do
-      @proc_set.generates?(:city).should be_true
-      @proc_set.generates?(:user).should be_false
-    end
+      it "should pass the request and the context to the generator proc" do
+        @block.should_receive(:call).with(@request, @context).and_return("boston")
+        @proc_set.generate(:city, @request, @context).should == "boston"
+      end
     
-    it "should run the generator" do
-      @proc_set.generate(:city, nil, :city_id => 1).should == "boston"
-      @proc_set.generate(:city, nil, :city_id => 2).should == "canberra"
-    end
-    
-    it "should raise a routing error if the block raises any error" do
-      lambda { @proc_set.generate(:city, nil) }.should raise_error(ActionController::RoutingError)
-    end
-    
-    it "should raise a routing error if it doesn't generate the name" do
-      lambda { @proc_set.generate(:user, nil) }.should raise_error(ActionController::RoutingError)
+      it "should raise a routing error if the block raises any error" do
+        @block.should_receive(:call).with(@request, @context).and_raise(StandardError.new)
+        lambda { @proc_set.generate(:city, @request, @context) }.should raise_error(ActionController::RoutingError)
+      end
     end
   end
   
   it "can be cleared" do
     @proc_set.add_verifier(:city) { |city| }
-    @proc_set.add_generator(:city) { |request, options| }
+    @proc_set.add_generator(:city) { |request| }
     @proc_set.clear!
     @proc_set.verifies?(:city).should be_false
     @proc_set.generates?(:city).should be_false
