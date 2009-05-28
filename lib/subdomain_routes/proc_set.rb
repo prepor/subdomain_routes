@@ -28,7 +28,10 @@ module SubdomainRoutes
     
     def generate(name, request, context)
       raise("no generator for subdomain #{name.inspect}") unless generates?(name)
-      args = @generators[name].arity == 1 ? [ request ] : [ request, context ]
+      args = case @generators[name].arity
+      when 1 then request ? [ request ] : raise("couldn't find a @request!")
+      else [ request, context ]
+      end
       @generators[name].call(*args)
     rescue Exception => e
       raise ActionController::RoutingError, "Route failed to generate (#{e.message})"

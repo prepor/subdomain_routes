@@ -211,10 +211,10 @@ describe "URL writing" do
           end
         end
     
-        it "should generate the URL in an object using a :generate option" do
+        it "should generate the URL in an object using a :context option" do
           in_object_with_host "www.example.com" do
             ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, nil, :city_id => 2 ).and_return("canberra")
-            city_events_path(:generate => { :city_id => 2 }).should == "http://canberra.example.com/events"
+            city_events_path(:context => { :city_id => 2 }).should == "http://canberra.example.com/events"
           end
         end
     

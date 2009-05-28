@@ -73,6 +73,10 @@ describe "subdomain proc set" do
         @block.should_receive(:call).with(@request).and_raise(StandardError.new)
         lambda { @proc_set.generate(:city, @request, nil) }.should raise_error(ActionController::RoutingError)
       end
+
+      it "should raise a routing error if a nil request is supplied" do
+        lambda { @proc_set.generate(:city, nil, nil) }.should raise_error(ActionController::RoutingError)
+      end
     end
 
     context "taking two arguments" do
@@ -90,6 +94,10 @@ describe "subdomain proc set" do
       it "should raise a routing error if the block raises any error" do
         @block.should_receive(:call).with(@request, @context).and_raise(StandardError.new)
         lambda { @proc_set.generate(:city, @request, @context) }.should raise_error(ActionController::RoutingError)
+      end
+
+      it "should not raise a routing error if a nil request is supplied" do
+        lambda { @proc_set.generate(:city, nil, nil) }.should_not raise_error
       end
     end
   end
