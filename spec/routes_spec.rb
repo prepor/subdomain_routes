@@ -35,8 +35,12 @@ describe "subdomain routes" do
     map_subdomain("admin") { |admin| admin.options[:subdomains].should == [ "admin" ] }
   end
 
-  it "should accept many specified subdomains" do
+  it "should accept multiple subdomains" do
     map_subdomain(:admin, :support) { |map| map.options[:subdomains].should == [ "admin", "support" ] }
+  end
+
+  it "should downcase the subdomains" do
+    map_subdomain(:Admin, "SUPPORT") { |map| map.options[:subdomains].should == [ "admin", "support" ] }
   end
   
   it "should accept a :proc option as the subdomain" do

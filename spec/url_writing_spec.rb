@@ -150,6 +150,15 @@ describe "URL writing" do
     end
   end
   
+  it "should downcase a supplied subdomain" do
+    map_subdomain(:www1, :www2, :name => nil) { |map| map.resources :users }
+    [ [ :Www1, "www1" ], [ "Www2", "www2" ] ].each do |mixedcase, lowercase|
+      with_host "www.example.com" do
+        users_url(:subdomain => mixedcase).should == "http://#{lowercase}.example.com/users"
+      end
+    end
+  end
+  
   context "when a :proc subdomain is specified" do          
     before(:each) do
       map_subdomain(:proc => :city) { |city| city.resources :events }
@@ -201,7 +210,17 @@ describe "URL writing" do
     
       context "and a generate proc is also defined" do
         before(:each) do
-          ActionController::Routing::Routes.generate_subdomain(:city) { |request, options| } # this block will be stubbed
+          ActionController::Routing::Routes.generate_subdomain(:city) { |request, context| } # this block will be stubbed
+          ActionController::Routing::Routes.subdomain_procs.stub!(:verify).with(:city, "canberra").and_return(true)
+        end
+        
+        it "should downcase the output of the generate proc" do
+          [ :Canberra, "Canberra" ].each do |mixedcase|
+            with_host "www.example.com" do
+              ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_return(mixedcase)
+              city_events_path.should == "http://canberra.example.com/events"
+            end
+          end
         end
     
         it "should generate the URL in a controller using the session" do
@@ -221,9 +240,35 @@ describe "URL writing" do
         it "should raise a routing error if the generate proc raises a routing error" do
           with_host "www.example.com" do
             ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_raise(ActionController::RoutingError.new("message"))
-            lambda { city_events_path() }.should raise_error(ActionController::RoutingError)
+            lambda { city_events_path }.should raise_error(ActionController::RoutingError)
           end
-        end        
+        end
+        
+        it "should run the verifier on the generated subdomain and raise an error if the subdomain is invalid" do
+          ActionController::Routing::Routes.subdomain_procs.stub!(:generate).and_return("www")
+          with_host "www.example.com" do
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).with(:city, "www").and_return(false)
+            lambda { city_events_path }.should raise_error(ActionController::RoutingError)
+          end
+        end
+
+        it "should run the verifier on the generated subdomain and produce the URL if the subdomain is valid" do
+          ActionController::Routing::Routes.subdomain_procs.stub!(:generate).and_return("hobart")
+          with_host "www.example.com" do
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).with(:city, "hobart").and_return(true)
+            lambda { city_events_path }.should_not raise_error
+          end
+        end
+        
+        it "should raise an error if the generated subdomain has an illegal format" do
+          ActionController::Routing::Routes.subdomain_procs.stub!(:verify).and_return(true)
+          [ :ww_w, "ww_w", "w w w", "www!", "123" ].each do |subdomain|
+            with_host "www.example.com" do
+              ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_return(subdomain)
+              lambda { city_events_path }.should raise_error(ActionController::RoutingError)
+            end
+          end
+        end
       end
     end
   end

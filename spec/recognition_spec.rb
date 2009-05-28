@@ -80,6 +80,11 @@ describe "subdomain route recognition" do
       end
     end
     
+    it "should not match the route if the verify proc raises a routing error" do
+      ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).any_number_of_times.with(:user, "mholling").and_raise(ActionController::RoutingError.new("message"))
+      lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+    end
+    
     it "should not call the verify proc more than once" do
       [ true, false ].each do |value|
         [ "/articles", "/articles/new", "/articles/1", "/articles/1/edit" ].each do |path|

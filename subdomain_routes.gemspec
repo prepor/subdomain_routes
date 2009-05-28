@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Matthew Hollingworth"]
-  s.date = %q{2009-05-27}
+  s.date = %q{2009-05-28}
   s.description = %q{SubdomainRoutes add subdomain conditions to the Rails routing system. Routes may be restricted to one or many specified subdomains. An URL will be recognised only if the host subdomain matches the subdomain specified in the route. Route generation is also enhanced, so that the subdomain of a generated URL (or path) will be changed if the requested route has a different subdomain to that of the current request.}
   s.email = %q{mdholling@gmail.com}
   s.extra_rdoc_files = [
@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
     "lib/subdomain_routes/routes.rb",
     "lib/subdomain_routes/split_host.rb",
     "lib/subdomain_routes/url_writer.rb",
+    "lib/subdomain_routes/validations.rb",
     "spec/extraction_spec.rb",
     "spec/proc_set_spec.rb",
     "spec/recognition_spec.rb",

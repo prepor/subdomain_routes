@@ -4,30 +4,40 @@ module SubdomainRoutes
   
   module RewriteSubdomainOptions
     include SplitHost
+    
+    def subdomain_procs
+      ActionController::Routing::Routes.subdomain_procs
+    end
 
     def rewrite_subdomain_options(options, host)
       if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
-        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_s : old_subdomain
-        case subdomains
-        when Array
-          unless subdomains.include? new_subdomain
-            if subdomains.size > 1 || options.has_key?(:subdomain)
-              raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (expected subdomain in #{subdomains.inspect}, instead got subdomain #{new_subdomain.inspect})"
+        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_s.downcase : old_subdomain
+        begin
+          case subdomains
+          when Array
+            unless subdomains.include? new_subdomain
+              if subdomains.size > 1 || options.has_key?(:subdomain)
+                raise "expected subdomain in #{subdomains.inspect}, instead got subdomain #{new_subdomain.inspect}"
+              else
+                new_subdomain = subdomains.first
+              end
+            end
+          when Hash
+            name = subdomains[:proc]
+            if subdomain_procs.generates?(name)
+              raise "can't specify a subdomain for this route" if options.has_key?(:subdomain)
+              new_subdomain = subdomain_procs.generate(name, @request, options.delete(:context)).to_s.downcase
+              unless subdomain_procs.verify(name, new_subdomain) && new_subdomain =~ SUBDOMAIN_FORMAT
+                raise "generated subdomain #{new_subdomain.inspect} is invalid"
+              end
+            elsif subdomain_procs.verify(name, new_subdomain)
             else
-              new_subdomain = subdomains.first
+              raise "subdomain #{new_subdomain.inspect} is invalid"
             end
           end
-        when Hash
-          if name = subdomains[:proc]
-            if ActionController::Routing::Routes.subdomain_procs.generates?(name)
-              raise ActionController::RoutingError, "Can't specify a subdomain for this route" if options.has_key?(:subdomain)
-              new_subdomain = ActionController::Routing::Routes.subdomain_procs.generate(name, @request, options.delete(:context)).to_s
-            elsif ActionController::Routing::Routes.subdomain_procs.verify(name, new_subdomain)
-            else
-              raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (subdomain #{new_subdomain.inspect} not valid)"
-            end
-          end
+        rescue Exception => e
+          raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (#{e.message})"
         end
         unless new_subdomain == old_subdomain
           options[:only_path] = false

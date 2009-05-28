@@ -7,7 +7,7 @@ describe "subdomain proc set" do
   
   context "with a subdomain verifier" do
     before(:each) do
-      @city_block = Proc.new { |city| [ "boston", "canberra" ].include? city }
+      @city_block = lambda { |city| } # this verifier block will be stubbed out
       @proc_set.add_verifier(:city, &@city_block)
     end
 
@@ -17,8 +17,13 @@ describe "subdomain proc set" do
     end
     
     it "should run the verifier" do
-      @proc_set.verify(:city, "boston").should be_true
-      @proc_set.verify(:city, "hobart").should be_false
+      @city_block.should_receive(:call).with("boston").and_return(true)
+      @proc_set.verify(:city, "boston").should == true
+    end
+    
+    it "should raise a routing error if the verifier raises any error" do
+      @city_block.stub!(:call).and_raise(StandardError)
+      lambda { @proc_set.verify(:city, "hobart") }.should raise_error(ActionController::RoutingError)
     end
   
     it "should return nil if it can't verify the name" do
@@ -31,9 +36,12 @@ describe "subdomain proc set" do
     end
     
     it "should return the cached value according to the arguments" do
-      2.times { @proc_set.verify(:city, "boston").should be_true }
-      2.times { @proc_set.verify(:city, "hobart").should be_false }
-      2.times { @proc_set.verify(:user, "mholling").should be_nil }
+      @city_block.should_receive(:call).with("boston").once.and_return(true)
+      @city_block.should_receive(:call).with("hobart").once.and_return(false)
+      2.times do
+        @proc_set.verify(:city, "boston").should == true
+        @proc_set.verify(:city, "hobart").should == false
+      end
     end
     
     it "should call the verify proc again once the cache is flushed" do
@@ -49,8 +57,8 @@ describe "subdomain proc set" do
       @request = ActionController::TestRequest.new
     end
   
-    it "should raise a routing error if it doesn't generate the name" do
-      lambda { @proc_set.generate(:user, nil, nil) }.should raise_error(ActionController::RoutingError)
+    it "should raise an error if it doesn't generate the name" do
+      lambda { @proc_set.generate(:user, nil, nil) }.should raise_error
     end
     
     context "taking one argument" do
@@ -69,13 +77,14 @@ describe "subdomain proc set" do
         @proc_set.generate(:city, @request, nil).should == "boston"
       end
     
-      it "should raise a routing error if the proc raises any error" do
-        @block.should_receive(:call).with(@request).and_raise(StandardError.new)
-        lambda { @proc_set.generate(:city, @request, nil) }.should raise_error(ActionController::RoutingError)
+      it "should raise any error that the generator proc raises" do
+        error = RuntimeError.new
+        @block.should_receive(:call).with(@request).and_raise(error)
+        lambda { @proc_set.generate(:city, @request, nil) }.should raise_error { |e| e.should == error }
       end
 
       it "should raise a routing error if a nil request is supplied" do
-        lambda { @proc_set.generate(:city, nil, nil) }.should raise_error(ActionController::RoutingError)
+        lambda { @proc_set.generate(:city, nil, nil) }.should raise_error
       end
     end
 
@@ -90,19 +99,30 @@ describe "subdomain proc set" do
         @block.should_receive(:call).with(@request, @context).and_return("boston")
         @proc_set.generate(:city, @request, @context).should == "boston"
       end
-    
-      it "should raise a routing error if the block raises any error" do
-        @block.should_receive(:call).with(@request, @context).and_raise(StandardError.new)
-        lambda { @proc_set.generate(:city, @request, @context) }.should raise_error(ActionController::RoutingError)
+      
+      it "should not raise a routing error if a nil request is supplied" do
+        lambda { @proc_set.generate(:city, nil, nil) }.should_not raise_error
       end
+    end
+    
+    context "taking no arguments" do # (of questionable utility!)
+      before(:each) do
+        @block = lambda { } # this generator block will be stubbed
+        @proc_set.add_generator(:city, &@block)
+      end
+      
+      it "should pass nothing to the generator proc" do
+        @block.should_receive(:call).with().and_return("boston")
+        @proc_set.generate(:city, @request, nil).should == "boston"
+      end      
 
       it "should not raise a routing error if a nil request is supplied" do
         lambda { @proc_set.generate(:city, nil, nil) }.should_not raise_error
       end
     end
   end
-  
-  it "can be cleared" do
+
+  it "can be cleared of its procs" do
     @proc_set.add_verifier(:city) { |city| }
     @proc_set.add_generator(:city) { |request| }
     @proc_set.clear!

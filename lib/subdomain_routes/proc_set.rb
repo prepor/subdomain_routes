@@ -24,17 +24,18 @@ module SubdomainRoutes
     
     def verify(name, subdomain)
       @verifiers[name].call(subdomain) if verifies?(name)
+    rescue Exception => e
+      raise ActionController::RoutingError, e.message
     end
     
     def generate(name, request, context)
       raise("no generator for subdomain #{name.inspect}") unless generates?(name)
       args = case @generators[name].arity
+      when -1, 0 then [ ]
       when 1 then request ? [ request ] : raise("couldn't find a @request!")
       else [ request, context ]
       end
       @generators[name].call(*args)
-    rescue Exception => e
-      raise ActionController::RoutingError, "Route failed to generate (#{e.message})"
     end
     
     memoize :verify
