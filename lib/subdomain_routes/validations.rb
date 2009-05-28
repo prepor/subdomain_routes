@@ -10,6 +10,6 @@ module SubdomainRoutes
   end
 end
 
-if defined? ActiveRecord::Validations::ClassMethods
+if defined? ActiveRecord::Base
   ActiveRecord::Base.send :extend, SubdomainRoutes::Validations::ClassMethods
 end

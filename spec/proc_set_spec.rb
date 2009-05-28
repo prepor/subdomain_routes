@@ -21,9 +21,10 @@ describe "subdomain proc set" do
       @proc_set.verify(:city, "boston").should == true
     end
     
-    it "should raise a routing error if the verifier raises any error" do
-      @city_block.stub!(:call).and_raise(StandardError)
-      lambda { @proc_set.verify(:city, "hobart") }.should raise_error(ActionController::RoutingError)
+    it "should raise any error that the verifier raises" do
+      error = StandardError.new
+      @city_block.stub!(:call).and_raise(error)
+      lambda { @proc_set.verify(:city, "hobart") }.should raise_error { |e| e.should == error }
     end
   
     it "should return nil if it can't verify the name" do

@@ -24,8 +24,6 @@ module SubdomainRoutes
     
     def verify(name, subdomain)
       @verifiers[name].call(subdomain) if verifies?(name)
-    rescue Exception => e
-      raise ActionController::RoutingError, e.message
     end
     
     def generate(name, request, context)

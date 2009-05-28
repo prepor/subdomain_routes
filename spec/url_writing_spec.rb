@@ -71,7 +71,7 @@ describe "URL writing" do
           end
         end
     
-        it "should raise an error if the requested subdomain doesn't match" do
+        it "should raise a routing error if the requested subdomain doesn't match" do
           with_host(host) do
             lambda {        user_path(@user, :subdomain => :other) }.should raise_error(ActionController::RoutingError)
             lambda { polymorphic_path(@user, :subdomain => :other) }.should raise_error(ActionController::RoutingError)
@@ -117,7 +117,7 @@ describe "URL writing" do
         end
       end
   
-      it "should raise an error if the host subdomain doesn't match" do
+      it "should raise a routing error if the host subdomain doesn't match" do
         with_host "other.example.com" do
           lambda {         item_url(@item) }.should raise_error(ActionController::RoutingError)
           lambda {        item_path(@item) }.should raise_error(ActionController::RoutingError)
@@ -137,7 +137,7 @@ describe "URL writing" do
           end
         end
           
-        it "should raise an error if the requested subdomain doesn't match" do
+        it "should raise a routing error if the requested subdomain doesn't match" do
           [ [ hosts.first, hosts.last ],
             [ hosts.last, hosts.first ] ].each do |new_host, old_host|
             with_host(old_host) do
@@ -164,7 +164,7 @@ describe "URL writing" do
       map_subdomain(:proc => :city) { |city| city.resources :events }
     end
     
-    it "should raise an error without a verify proc" do
+    it "should raise a routing error without a verify proc" do
       with_host "boston.example.com" do
         lambda {  city_events_url }.should raise_error(ActionController::RoutingError)
         lambda { city_events_path }.should raise_error(ActionController::RoutingError)
@@ -184,7 +184,7 @@ describe "URL writing" do
         end
       end
     
-      it "should raise an error if the verify proc returns false" do
+      it "should raise a routing error if the verify proc returns false" do
         with_host "www.example.com" do
           ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "www").and_return(false)
           lambda { city_events_url  }.should raise_error(ActionController::RoutingError)
@@ -200,7 +200,7 @@ describe "URL writing" do
         end
       end
     
-      it "should raise an error if the verify proc returns false and a non-matching subdomain is supplied" do
+      it "should raise a routing error if the verify proc returns false and a non-matching subdomain is supplied" do
         with_host "www.example.com" do
           ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "hobart").and_return(false)
           lambda {  city_events_url(:subdomain => :hobart) }.should raise_error(ActionController::RoutingError)
@@ -230,21 +230,22 @@ describe "URL writing" do
           end
         end
     
-        it "should generate the URL in an object using a :context option" do
+        it "should generate the URL in an object using a supplied context" do
           in_object_with_host "www.example.com" do
             ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).with(:city, nil, :city_id => 2 ).and_return("canberra")
             city_events_path(:context => { :city_id => 2 }).should == "http://canberra.example.com/events"
           end
         end
     
-        it "should raise a routing error if the generate proc raises a routing error" do
+        it "should raise any error that the generate proc raises" do
           with_host "www.example.com" do
-            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_raise(ActionController::RoutingError.new("message"))
-            lambda { city_events_path }.should raise_error(ActionController::RoutingError)
+            error = StandardError.new
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_raise(error)
+            lambda { city_events_path }.should raise_error { |e| e.should == error }
           end
         end
         
-        it "should run the verifier on the generated subdomain and raise an error if the subdomain is invalid" do
+        it "should run the verifier on the generated subdomain and raise a routing error if the subdomain is invalid" do
           ActionController::Routing::Routes.subdomain_procs.stub!(:generate).and_return("www")
           with_host "www.example.com" do
             ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).with(:city, "www").and_return(false)
@@ -260,7 +261,7 @@ describe "URL writing" do
           end
         end
         
-        it "should raise an error if the generated subdomain has an illegal format" do
+        it "should raise a routing error if the generated subdomain has an illegal format" do
           ActionController::Routing::Routes.subdomain_procs.stub!(:verify).and_return(true)
           [ :ww_w, "ww_w", "w w w", "www!", "123" ].each do |subdomain|
             with_host "www.example.com" do

@@ -18,7 +18,7 @@ module SubdomainRoutes
           when Array
             unless subdomains.include? new_subdomain
               if subdomains.size > 1 || options.has_key?(:subdomain)
-                raise "expected subdomain in #{subdomains.inspect}, instead got subdomain #{new_subdomain.inspect}"
+                raise ActionController::RoutingError, "expected subdomain in #{subdomains.inspect}, instead got subdomain #{new_subdomain.inspect}"
               else
                 new_subdomain = subdomains.first
               end
@@ -26,17 +26,17 @@ module SubdomainRoutes
           when Hash
             name = subdomains[:proc]
             if subdomain_procs.generates?(name)
-              raise "can't specify a subdomain for this route" if options.has_key?(:subdomain)
+              raise ActionController::RoutingError, "can't specify a subdomain for this route" if options.has_key?(:subdomain)
               new_subdomain = subdomain_procs.generate(name, @request, options.delete(:context)).to_s.downcase
               unless subdomain_procs.verify(name, new_subdomain) && new_subdomain =~ SUBDOMAIN_FORMAT
-                raise "generated subdomain #{new_subdomain.inspect} is invalid"
+                raise ActionController::RoutingError, "generated subdomain #{new_subdomain.inspect} is invalid"
               end
             elsif subdomain_procs.verify(name, new_subdomain)
             else
-              raise "subdomain #{new_subdomain.inspect} is invalid"
+              raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
             end
           end
-        rescue Exception => e
+        rescue ActionController::RoutingError => e
           raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (#{e.message})"
         end
         unless new_subdomain == old_subdomain
