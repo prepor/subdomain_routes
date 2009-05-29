@@ -1,4 +1,4 @@
-describe "ActionMailer" do
+describe "ActionMailer::Base" do
   before(:each) do
     @mailer_class = Class.new(ActionMailer::Base) { def test; body "test"; end }
   end

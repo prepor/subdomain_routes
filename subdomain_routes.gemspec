@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
     "lib/subdomain_routes/url_writer.rb",
     "lib/subdomain_routes/validations.rb",
     "spec/extraction_spec.rb",
+    "spec/mailer_spec.rb",
     "spec/proc_set_spec.rb",
     "spec/recognition_spec.rb",
     "spec/resources_spec.rb",
@@ -45,6 +46,7 @@ Gem::Specification.new do |s|
   s.summary = %q{A Rails library for incorporating subdomains into route generation and recognition.}
   s.test_files = [
     "spec/extraction_spec.rb",
+    "spec/mailer_spec.rb",
     "spec/proc_set_spec.rb",
     "spec/recognition_spec.rb",
     "spec/resources_spec.rb",
