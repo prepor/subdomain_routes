@@ -28,10 +28,10 @@ module SubdomainRoutes
             if subdomain_procs.generates?(name)
               raise ActionController::RoutingError, "can't specify a subdomain for this route" if options.has_key?(:subdomain)
               new_subdomain = subdomain_procs.generate(name, @request, options.delete(:context)).to_s.downcase
-              unless subdomain_procs.verify(name, new_subdomain) && new_subdomain =~ SUBDOMAIN_FORMAT
+              unless subdomain_procs.recognize(name, new_subdomain) && new_subdomain =~ SUBDOMAIN_FORMAT
                 raise ActionController::RoutingError, "generated subdomain #{new_subdomain.inspect} is invalid"
               end
-            elsif subdomain_procs.verify(name, new_subdomain)
+            elsif subdomain_procs.recognize(name, new_subdomain)
             else
               raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
             end

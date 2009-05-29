@@ -26,8 +26,8 @@ module SubdomainRoutes
         @subdomain_procs ||= SubdomainRoutes::ProcSet.new
       end
 
-      def verify_subdomain(name, &block)
-        subdomain_procs.add_verifier(name, &block)
+      def recognize_subdomain(name, &block)
+        subdomain_procs.add_recognizer(name, &block)
       end
 
       def generate_subdomain(name, &block)
@@ -52,7 +52,7 @@ module SubdomainRoutes
           result << "conditions[:subdomains].include?(env[:subdomain])"
         when Hash
           if subdomain = conditions[:subdomains][:proc]
-            result << %Q{ActionController::Routing::Routes.subdomain_procs.verify(#{subdomain.inspect}, env[:subdomain])}
+            result << %Q{ActionController::Routing::Routes.subdomain_procs.recognize(#{subdomain.inspect}, env[:subdomain])}
           end
         end
         result

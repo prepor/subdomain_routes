@@ -164,45 +164,45 @@ describe "URL writing" do
       map_subdomain(:proc => :city) { |city| city.resources :events }
     end
     
-    it "should raise a routing error without a verify proc" do
+    it "should raise a routing error without a recognize proc" do
       with_host "boston.example.com" do
         lambda {  city_events_url }.should raise_error(ActionController::RoutingError)
         lambda { city_events_path }.should raise_error(ActionController::RoutingError)
       end
     end
     
-    context "and a verify proc is defined" do
+    context "and a recognize proc is defined" do
       before(:each) do
-        ActionController::Routing::Routes.verify_subdomain(:city) { |city| } # this block will be stubbed
+        ActionController::Routing::Routes.recognize_subdomain(:city) { |city| } # this block will be stubbed
       end
       
-      it "should not change the host if the verify proc returns true" do
+      it "should not change the host if the recognize proc returns true" do
         with_host "boston.example.com" do
-          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "boston").and_return(true)
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "boston").and_return(true)
           city_events_url.should == "http://boston.example.com/events"
           city_events_path.should == "/events"
         end
       end
     
-      it "should raise a routing error if the verify proc returns false" do
+      it "should raise a routing error if the recognize proc returns false" do
         with_host "www.example.com" do
-          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "www").and_return(false)
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "www").and_return(false)
           lambda { city_events_url  }.should raise_error(ActionController::RoutingError)
           lambda { city_events_path }.should raise_error(ActionController::RoutingError)
         end
       end
     
-      it "should force the host if the verify proc returns false but a matching subdomain is supplied" do
+      it "should force the host if the recognize proc returns false but a matching subdomain is supplied" do
         with_host "www.example.com" do
-          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "boston").and_return(true)
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "boston").and_return(true)
            city_events_url(:subdomain => :boston).should == "http://boston.example.com/events"
           city_events_path(:subdomain => :boston).should == "http://boston.example.com/events"
         end
       end
     
-      it "should raise a routing error if the verify proc returns false and a non-matching subdomain is supplied" do
+      it "should raise a routing error if the recognize proc returns false and a non-matching subdomain is supplied" do
         with_host "www.example.com" do
-          ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).twice.with(:city, "hobart").and_return(false)
+          ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "hobart").and_return(false)
           lambda {  city_events_url(:subdomain => :hobart) }.should raise_error(ActionController::RoutingError)
           lambda { city_events_path(:subdomain => :hobart) }.should raise_error(ActionController::RoutingError)
         end
@@ -211,7 +211,7 @@ describe "URL writing" do
       context "and a generate proc is also defined" do
         before(:each) do
           ActionController::Routing::Routes.generate_subdomain(:city) { |request, context| } # this block will be stubbed
-          ActionController::Routing::Routes.subdomain_procs.stub!(:verify).with(:city, "canberra").and_return(true)
+          ActionController::Routing::Routes.subdomain_procs.stub!(:recognize).with(:city, "canberra").and_return(true)
         end
         
         it "should downcase the output of the generate proc" do
@@ -245,24 +245,24 @@ describe "URL writing" do
           end
         end
         
-        it "should run the verifier on the generated subdomain and raise a routing error if the subdomain is invalid" do
+        it "should run the recognizer on the generated subdomain and raise a routing error if the subdomain is invalid" do
           ActionController::Routing::Routes.subdomain_procs.stub!(:generate).and_return("www")
           with_host "www.example.com" do
-            ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).with(:city, "www").and_return(false)
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).with(:city, "www").and_return(false)
             lambda { city_events_path }.should raise_error(ActionController::RoutingError)
           end
         end
 
-        it "should run the verifier on the generated subdomain and produce the URL if the subdomain is valid" do
+        it "should run the recognizer on the generated subdomain and produce the URL if the subdomain is valid" do
           ActionController::Routing::Routes.subdomain_procs.stub!(:generate).and_return("hobart")
           with_host "www.example.com" do
-            ActionController::Routing::Routes.subdomain_procs.should_receive(:verify).with(:city, "hobart").and_return(true)
+            ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).with(:city, "hobart").and_return(true)
             lambda { city_events_path }.should_not raise_error
           end
         end
         
         it "should raise a routing error if the generated subdomain has an illegal format" do
-          ActionController::Routing::Routes.subdomain_procs.stub!(:verify).and_return(true)
+          ActionController::Routing::Routes.subdomain_procs.stub!(:recognize).and_return(true)
           [ :ww_w, "ww_w", "w w w", "www!", "123" ].each do |subdomain|
             with_host "www.example.com" do
               ActionController::Routing::Routes.subdomain_procs.should_receive(:generate).and_return(subdomain)

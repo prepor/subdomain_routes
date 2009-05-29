@@ -6,24 +6,24 @@ module SubdomainRoutes
       clear!
     end
     
-    def add_verifier(name, &block)
-      @verifiers[name] = block
+    def add_recognizer(name, &block)
+      @recognizers[name] = block
     end
 
     def add_generator(name, &block)
       @generators[name] = block
     end
     
-    def verifies?(name)
-      @verifiers.has_key?(name)
+    def recognizes?(name)
+      @recognizers.has_key?(name)
     end
 
     def generates?(name)
       @generators.has_key?(name)
     end
     
-    def verify(name, subdomain)
-      @verifiers[name].call(subdomain) if verifies?(name)
+    def recognize(name, subdomain)
+      @recognizers[name].call(subdomain) if recognizes?(name)
     end
     
     def generate(name, request, context)
@@ -36,15 +36,15 @@ module SubdomainRoutes
       @generators[name].call(*args)
     end
     
-    memoize :verify
+    memoize :recognize
     private :flush_cache
     
     def flush!
-      flush_cache :verify
+      flush_cache :recognize
     end
     
     def clear!
-      @verifiers = {}
+      @recognizers = {}
       @generators = {}
       flush!
     end
