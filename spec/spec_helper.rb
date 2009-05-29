@@ -1,7 +1,14 @@
 require 'spec'
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
+require 'rubygems'
+require 'active_support'
+require 'action_controller'
+require 'active_record' # only required for testing optional features, not required by the gem
+require 'action_mailer' # only required for testing optional features, not required by the gem
+
 require 'subdomain_routes'
+
 Spec::Runner.configure do |config|
 end
 require 'action_controller/test_process'

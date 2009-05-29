@@ -274,3 +274,16 @@ describe "URL writing" do
     end
   end
 end
+
+describe "URL rewriter" do
+  it "should flush the subdomain procs cache on initialization" do
+    ActionController::Routing::Routes.subdomain_procs.should_receive(:flush!)
+    in_controller_with_host("mholling.example.com") { }
+  end
+  
+  it "should not flush the subdomain procs cache on initialization if Config::manual_flush is set" do
+    SubdomainRoutes::Config.stub!(:manual_flush).and_return(true)
+    ActionController::Routing::Routes.subdomain_procs.should_not_receive(:flush!)
+    in_controller_with_host("mholling.example.com") { }
+  end
+end

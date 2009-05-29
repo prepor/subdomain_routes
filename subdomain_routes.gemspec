@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
     "VERSION.yml",
     "lib/subdomain_routes.rb",
     "lib/subdomain_routes/config.rb",
+    "lib/subdomain_routes/mailer.rb",
     "lib/subdomain_routes/mapper.rb",
     "lib/subdomain_routes/proc_set.rb",
     "lib/subdomain_routes/request.rb",

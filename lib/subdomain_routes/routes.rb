@@ -4,7 +4,7 @@ module SubdomainRoutes
       include SplitHost
       
       def self.included(base)
-        [ :extract_request_environment, :add_route, :clear!, :recognize_path ].each { |method| base.alias_method_chain method, :subdomains }
+        [ :extract_request_environment, :add_route, :clear! ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
       def extract_request_environment_with_subdomains(request)
@@ -37,12 +37,6 @@ module SubdomainRoutes
       def clear_with_subdomains!
         subdomain_procs.clear!
         clear_without_subdomains!
-      end
-      
-      def recognize_path_with_subdomains(path, environment = {})
-        subdomain_procs.flush! unless SubdomainRoutes::Config.manual_flush
-        recognize_path_without_subdomains(path, environment)
-        # TODO: what about stale cache in ActionMailer and other classes where UrlWriter is included?
       end
     end
   

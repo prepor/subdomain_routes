@@ -70,8 +70,13 @@ module SubdomainRoutes
     include RewriteSubdomainOptions
     
     def self.included(base)
-      base.alias_method_chain :rewrite, :subdomains
+      [ :rewrite, :initialize ].each { |method| base.alias_method_chain method, :subdomains }
       base::RESERVED_OPTIONS << :subdomain
+    end
+    
+    def initialize_with_subdomains(*args)
+      ActionController::Routing::Routes.subdomain_procs.flush! unless SubdomainRoutes::Config.manual_flush
+      initialize_without_subdomains(*args)
     end
     
     def rewrite_with_subdomains(options)      
@@ -87,3 +92,7 @@ end
 
 ActionController::UrlWriter.send :include, SubdomainRoutes::UrlWriter
 ActionController::UrlRewriter.send :include, SubdomainRoutes::UrlRewriter
+
+if defined? ActionMailer::Base
+  ActionMailer::Base.send :include, ActionController::UrlWriter
+end
