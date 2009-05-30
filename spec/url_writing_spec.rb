@@ -35,34 +35,24 @@ describe "URL writing" do
       end
   
       it "should not change the host for an URL if the host subdomain matches" do
-        with_host(host) do
-          users_url.should == "http://#{host}/users"
-        end
+        with_host(host) { users_url.should == "http://#{host}/users" }
       end
     
       it "should change the host for an URL if the host subdomain differs" do
-        with_host "other.example.com" do
-          users_url.should == "http://#{host}/users"
-        end
+        with_host("other.example.com") { users_url.should == "http://#{host}/users" }
       end
 
       it "should not force the host for a path if the host subdomain matches" do
-        with_host(host) do
-          users_path.should == "/users"
-        end
+        with_host(host) { users_path.should == "/users" }
       end
 
       it "should force the host for a path if the host subdomain differs" do
-        with_host "other.example.com" do
-          users_path.should == "http://#{host}/users"
-        end
+        with_host("other.example.com") { users_path.should == "http://#{host}/users" }
       end
   
       context "and a subdomain different from the host subdomain is explicitly requested" do
         it "should change the host if the requested subdomain matches" do
-          with_host "other.example.com" do
-            users_path(:subdomain => subdomain).should == "http://#{host}/users"
-          end
+          with_host("other.example.com") { users_path(:subdomain => subdomain).should == "http://#{host}/users" }
         end
     
         it "should raise a routing error if the requested subdomain doesn't match" do
@@ -74,9 +64,7 @@ describe "URL writing" do
       
       context "and the current host's subdomain is explicitly requested" do
         it "should not force the host for a path if the subdomain matches" do
-          with_host(host) do
-            users_path(:subdomain => subdomain).should == "/users"
-          end
+          with_host(host) { users_path(:subdomain => subdomain).should == "/users" }
         end
       end
     end
@@ -92,17 +80,13 @@ describe "URL writing" do
           
       it "should not change the host for an URL if the host subdomain matches" do
         hosts.each do |host|
-          with_host(host) do
-            items_url.should == "http://#{host}/items"
-          end
+          with_host(host) { items_url.should == "http://#{host}/items" }
         end
       end
   
       it "should not force the host for a path if the host subdomain matches" do
         hosts.each do |host|
-          with_host(host) do
-            items_path.should == "/items"
-          end
+          with_host(host) { items_path.should == "/items" }
         end
       end
   
@@ -117,9 +101,7 @@ describe "URL writing" do
         it "should change the host if the requested subdomain matches" do
           [ [ subdomains.first, hosts.first, hosts.last ],
             [ subdomains.last, hosts.last, hosts.first ] ].each do |subdomain, new_host, old_host|
-            with_host(old_host) do
-              items_path(:subdomain => subdomain).should == "http://#{new_host}/items"
-            end
+            with_host(old_host) { items_path(:subdomain => subdomain).should == "http://#{new_host}/items" }
           end
         end
           
@@ -138,9 +120,7 @@ describe "URL writing" do
   it "should downcase a supplied subdomain" do
     map_subdomain(:www1, :www2, :name => nil) { |map| map.resources :users }
     [ [ :Www1, "www1" ], [ "Www2", "www2" ] ].each do |mixedcase, lowercase|
-      with_host "www.example.com" do
-        users_url(:subdomain => mixedcase).should == "http://#{lowercase}.example.com/users"
-      end
+      with_host("www.example.com") { users_url(:subdomain => mixedcase).should == "http://#{lowercase}.example.com/users" }
     end
   end
   

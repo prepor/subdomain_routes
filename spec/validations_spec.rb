@@ -4,9 +4,9 @@ describe "ActiveRecord::Base" do
       attr_accessor :subdomain
       User.validates_subdomain_format_of :subdomain
     end
-    [ true, false ].each do |value|
-      SubdomainRoutes.should_receive(:valid_subdomain?).with("mholling").and_return(value)
-      User.new(:subdomain => "mholling").valid?.should == value
-    end
+    SubdomainRoutes.should_receive(:valid_subdomain?).with("mholling").and_return(true)
+    User.new(:subdomain => "mholling").valid?.should be_true
+    SubdomainRoutes.should_receive(:valid_subdomain?).with("mholling").and_return(nil)
+    User.new(:subdomain => "mholling").valid?.should be_false
   end
 end

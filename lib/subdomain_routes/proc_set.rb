@@ -38,6 +38,7 @@ module SubdomainRoutes
     
     memoize :recognize
     private :flush_cache
+    # TODO: we should probably cache :generate too, and _always_ flush it per request.
     
     def flush!
       flush_cache :recognize

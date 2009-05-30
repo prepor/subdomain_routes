@@ -1,13 +1,10 @@
 module SubdomainRoutes
   def self.valid_subdomain?(subdomain)
-    subdomain =~ /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*)$/
-    # # TODO: could we use URI::parse instead?:
-    # begin
-    #   URI.parse "http://#{subdomain}.example.com"
-    #   true
-    # rescue URI::InvalidURIError
-    #   false
-    # end
+    subdomain.to_s =~ /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*)$/
+  # # TODO: could we use URI::parse instead?:
+  #   URI.parse "http://#{subdomain}.example.com"
+  # rescue URI::InvalidURIError
+  #   false
   end
   
   module Validations
