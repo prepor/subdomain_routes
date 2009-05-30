@@ -1,8 +1,4 @@
 module SubdomainRoutes
-            SUBDOMAIN_FORMAT = /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*|)$/
-  NON_EMPTY_SUBDOMAIN_FORMAT = /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*)$/
-  # TODO: could we use URI::parse instead?
-        
   module Routing
     module RouteSet
       module Mapper
@@ -21,7 +17,7 @@ module SubdomainRoutes
             subdomains.map!(&:downcase)
             subdomains.uniq!
             subdomains.compact.each do |subdomain|
-              raise ArgumentError, "Illegal subdomain format: #{subdomain.inspect}" unless subdomain =~ SUBDOMAIN_FORMAT
+              raise ArgumentError, "Illegal subdomain format: #{subdomain.inspect}" unless subdomain.blank? || SubdomainRoutes.valid_subdomain?(subdomain)
             end
             if subdomains.include? ""
               raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length

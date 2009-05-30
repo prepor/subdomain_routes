@@ -1,7 +1,12 @@
 describe "ActiveRecord::Base" do
-  it "should have a validates_subdomain_format_of method which validates attributes against a subdomain regexp" do
-    klass = Class.new(ActiveRecord::Base)
-    klass.should_receive(:validates_format_of).with(:subdomain, :with => SubdomainRoutes::NON_EMPTY_SUBDOMAIN_FORMAT)
-    klass.validates_subdomain_format_of :subdomain
+  it "should have validates_subdomain_format_of which runs SubdomainRoutes.valid_subdomain? against the attributes" do
+    class User < ActiveRecord::Base
+      attr_accessor :subdomain
+      User.validates_subdomain_format_of :subdomain
+    end
+    [ true, false ].each do |value|
+      SubdomainRoutes.should_receive(:valid_subdomain?).with("mholling").and_return(value)
+      User.new(:subdomain => "mholling").valid?.should == value
+    end
   end
 end

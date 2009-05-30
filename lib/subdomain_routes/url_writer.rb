@@ -28,7 +28,7 @@ module SubdomainRoutes
             if subdomain_procs.generates?(subdomains[:proc]) && !options.has_key?(:subdomain)
               new_subdomain = subdomain_procs.generate(subdomains[:proc], @request, options.delete(:context)).to_s.downcase
             end
-            unless subdomain_procs.recognize(subdomains[:proc], new_subdomain) && new_subdomain =~ SUBDOMAIN_FORMAT
+            unless subdomain_procs.recognize(subdomains[:proc], new_subdomain) && (new_subdomain.blank? || SubdomainRoutes.valid_subdomain?(new_subdomain))
               raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
             end
           end

@@ -58,19 +58,11 @@ def with_host(host, &block)
   in_object_with_host(host, &block)
 end
 
-def new_class(*names)
-  names.map do |name|
-    class_name = name.to_s.capitalize
-    unless Object.const_defined?(class_name)
-      klass = Class.new do
-        attr_reader :id
-        def save; @id = object_id; end
-        def to_param; id.to_s; end
-        def self.create; object = new; object.save; object; end
-      end
-      Object.const_set(class_name, klass)
-    end
+ActiveRecord::Base.class_eval do
+  alias_method :save, :valid?
+  def self.columns() @columns ||= []; end
+  
+  def self.column(name, sql_type = nil, default = nil, null = true)
+    columns << ActiveRecord::ConnectionAdapters::Column.new(name.to_s, default, sql_type, null)
   end
 end
-
-new_class :item, :user

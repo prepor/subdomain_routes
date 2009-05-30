@@ -5,19 +5,22 @@ describe "subdomain routes" do
     ActionController::Routing::Routes.clear!
     SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
   end
-  
-  it "should raise an error if the specified subdomains have illegal characters" do
-    [ :ww_w, "ww_w", "w w w", "www!", "123" ].each do |subdomain|
-      lambda { map_subdomain(subdomain) { } }.should raise_error(ArgumentError)
-    end
+    
+  it "should check the validity of each subdomain" do
+    SubdomainRoutes.should_receive(:valid_subdomain?).twice.and_return(true, true)
+    lambda { map_subdomain(:www, :www1) { } }.should_not raise_error
   end
   
-  it "should accept all legal subdomains" do
-    [ "www1", "www-1" ].each do |subdomain|
-      lambda { map_subdomain(subdomain) { } }.should_not raise_error
-    end
+  it "should check the validity of each subdomain and raise an error if any are invalid" do
+    SubdomainRoutes.should_receive(:valid_subdomain?).twice.and_return(true, false)
+    lambda { map_subdomain(:www, :www!) { } }.should raise_error(ArgumentError)
   end
-
+  
+  it "should check not the validity of a nil subdomain" do
+    SubdomainRoutes.should_not_receive(:valid_subdomain?)
+    map_subdomain(nil) { }
+  end
+  
   it "should accept a nil subdomain" do
     map_subdomain(nil) { |map| map.options[:subdomains].should == [ "" ] }
   end
