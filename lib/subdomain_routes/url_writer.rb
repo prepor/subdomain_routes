@@ -24,15 +24,10 @@ module SubdomainRoutes
               end
             end
           when Hash
-            name = subdomains[:proc]
-            if subdomain_procs.generates?(name)
-              raise ActionController::RoutingError, "can't specify a subdomain for this route" if options.has_key?(:subdomain)
-              new_subdomain = subdomain_procs.generate(name, @request, options.delete(:context)).to_s.downcase
-              unless subdomain_procs.recognize(name, new_subdomain) && new_subdomain =~ SUBDOMAIN_FORMAT
-                raise ActionController::RoutingError, "generated subdomain #{new_subdomain.inspect} is invalid"
-              end
-            elsif subdomain_procs.recognize(name, new_subdomain)
-            else
+            if subdomain_procs.generates?(subdomains[:proc]) && !options.has_key?(:subdomain)
+              new_subdomain = subdomain_procs.generate(subdomains[:proc], @request, options.delete(:context)).to_s.downcase
+            end
+            unless subdomain_procs.recognize(subdomains[:proc], new_subdomain) && new_subdomain =~ SUBDOMAIN_FORMAT
               raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
             end
           end
@@ -70,13 +65,8 @@ module SubdomainRoutes
     include RewriteSubdomainOptions
     
     def self.included(base)
-      [ :rewrite, :initialize ].each { |method| base.alias_method_chain method, :subdomains }
+      base.alias_method_chain :rewrite, :subdomains
       base::RESERVED_OPTIONS << :subdomain
-    end
-    
-    def initialize_with_subdomains(*args)
-      ActionController::Routing::Routes.subdomain_procs.flush! unless SubdomainRoutes::Config.manual_flush
-      initialize_without_subdomains(*args)
     end
     
     def rewrite_with_subdomains(options)      

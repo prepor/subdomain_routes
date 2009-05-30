@@ -270,20 +270,25 @@ describe "URL writing" do
             end
           end
         end
+        
+        context "and a subdomain is explicitly requested" do
+          it "should not run the generator and return the URL if the requestd subdomain is valid" do
+            with_host "www.example.com" do
+              ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).with(:city, "hobart").and_return(true)
+              ActionController::Routing::Routes.subdomain_procs.should_not_receive(:generate)
+              city_events_path(:subdomain => :hobart).should == "http://hobart.example.com/events"
+            end
+          end
+          
+          it "should not run the generator and raise an error if the requestd subdomain is invalid" do
+            with_host "www.example.com" do
+              ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).with(:city, "www").and_return(false)
+              ActionController::Routing::Routes.subdomain_procs.should_not_receive(:generate)
+              lambda { city_events_path(:subdomain => :www) }.should raise_error(ActionController::RoutingError)
+            end
+          end
+        end
       end
     end
-  end
-end
-
-describe "URL rewriter" do
-  it "should flush the subdomain procs cache on initialization" do
-    ActionController::Routing::Routes.subdomain_procs.should_receive(:flush!)
-    in_controller_with_host("mholling.example.com") { }
-  end
-  
-  it "should not flush the subdomain procs cache on initialization if Config::manual_flush is set" do
-    SubdomainRoutes::Config.stub!(:manual_flush).and_return(true)
-    ActionController::Routing::Routes.subdomain_procs.should_not_receive(:flush!)
-    in_controller_with_host("mholling.example.com") { }
   end
 end

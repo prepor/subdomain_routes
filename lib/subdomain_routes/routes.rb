@@ -4,7 +4,7 @@ module SubdomainRoutes
       include SplitHost
       
       def self.included(base)
-        [ :extract_request_environment, :add_route, :clear! ].each { |method| base.alias_method_chain method, :subdomains }
+        [ :extract_request_environment, :add_route, :clear!, :call ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
       def extract_request_environment_with_subdomains(request)
@@ -37,6 +37,11 @@ module SubdomainRoutes
       def clear_with_subdomains!
         subdomain_procs.clear!
         clear_without_subdomains!
+      end
+      
+      def call_with_subdomains(*args)
+        subdomain_procs.flush! unless SubdomainRoutes::Config.manual_flush
+        call_without_subdomains(*args)
       end
     end
   

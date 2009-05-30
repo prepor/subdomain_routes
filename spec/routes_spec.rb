@@ -209,7 +209,7 @@ describe "subdomain routes" do
   end
 end
 
-describe ActionController::Routing::Routes do
+describe "ActionController::Routing::Routes" do
   before(:each) do
     ActionController::Routing::Routes.clear!
   end
@@ -232,5 +232,22 @@ describe ActionController::Routing::Routes do
     ActionController::Routing::Routes.clear!
     ActionController::Routing::Routes.subdomain_procs.generates?(:city).should be_false
     ActionController::Routing::Routes.subdomain_procs.recognizes?(:city).should be_false
+  end
+  
+  it "should flush the cache when called" do
+    ActionController::Routing::Routes.subdomain_procs.should_receive(:flush!)
+    begin
+      ActionController::Routing::Routes.call(ActionController::TestRequest.new.env)
+    rescue ActionController::RoutingError # no routes defined so the call will raise a routing error
+    end
+  end
+  
+  it "should not flush the cache when called if SubdomainRoutes::Config.manual_flush is set" do
+    SubdomainRoutes::Config.stub!(:manual_flush).and_return(true)
+    ActionController::Routing::Routes.subdomain_procs.should_not_receive(:flush!)
+    begin
+      ActionController::Routing::Routes.call(ActionController::TestRequest.new.env)
+    rescue ActionController::RoutingError # no routes defined so the call will raise a routing error
+    end
   end
 end
