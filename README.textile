@@ -319,10 +319,5 @@ validates_exclusion_of :subdomain, :in => %w{support admin www}
 
 (We could also validate for a minimum and maximum length.)
 
-h2. Conclusion
-
-So that's about it for the SubdomainRoutes gem. Give it a go and let me know what you think. It offers a viable alternative to what's out there at the moment, and a couple of welcome additions. Code is "here":http://github.com/mholling/subdomain_routes/tree/master, if you want to check it out.
-
-
 
 Copyright (c) 2009 Matthew Hollingworth. See LICENSE for details.
