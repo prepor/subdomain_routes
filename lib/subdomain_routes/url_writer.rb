@@ -1,5 +1,6 @@
 module SubdomainRoutes
   class HostNotSupplied < StandardError
+    # TODO: should this just be an ActionController::RoutingError instead? Any benefit to having a separate error type?
   end
   
   module RewriteSubdomainOptions

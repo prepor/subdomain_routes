@@ -1,5 +1,8 @@
 module SubdomainRoutes
   class TooManySubdomains < StandardError
+    # TODO: should this just be an ActionController::RoutingError instead? Any benefit to having a separate error type?
+    # OK, keep the special codes, but catch and re-case them in UrlWriter.
+    # (The errors are also raised in extract_request_environment...)
   end
 
   module SplitHost

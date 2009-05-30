@@ -1,6 +1,7 @@
 module SubdomainRoutes
             SUBDOMAIN_FORMAT = /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*|)$/
   NON_EMPTY_SUBDOMAIN_FORMAT = /^([a-z]|[a-z][a-z0-9]|[a-z]([a-z0-9]|\-[a-z0-9])*)$/
+  # TODO: could we use URI::parse instead?
         
   module Routing
     module RouteSet
