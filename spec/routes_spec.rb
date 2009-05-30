@@ -222,18 +222,10 @@ describe "ActionController::Routing::Routes" do
     ActionController::Routing::Routes.recognize_subdomain(:city) { |city| city == "perth" }
     ActionController::Routing::Routes.subdomain_procs.recognizes?(:city).should be_true
   end
-  
-  it "should allow a subdomain generation method to be added" do
-    ActionController::Routing::Routes.subdomain_procs.generates?(:city).should be_false
-    ActionController::Routing::Routes.generate_subdomain(:city) { "perth" }
-    ActionController::Routing::Routes.subdomain_procs.generates?(:city).should be_true
-  end
 
-  it "should allow subdomain recognition and generation methods to be cleared" do
+  it "should allow subdomain recognition methods to be cleared" do
     ActionController::Routing::Routes.recognize_subdomain(:city) { |city| city == "perth" }
-    ActionController::Routing::Routes.generate_subdomain(:city) { "perth" }
     ActionController::Routing::Routes.clear!
-    ActionController::Routing::Routes.subdomain_procs.generates?(:city).should be_false
     ActionController::Routing::Routes.subdomain_procs.recognizes?(:city).should be_false
   end
   

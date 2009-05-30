@@ -29,10 +29,6 @@ module SubdomainRoutes
       def recognize_subdomain(name, &block)
         subdomain_procs.add_recognizer(name, &block)
       end
-
-      def generate_subdomain(name, &block)
-        subdomain_procs.add_generator(name, &block)
-      end
       
       def clear_with_subdomains!
         subdomain_procs.clear!
