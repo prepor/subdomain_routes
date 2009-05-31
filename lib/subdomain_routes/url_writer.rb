@@ -1,6 +1,5 @@
 module SubdomainRoutes
   class HostNotSupplied < StandardError
-    # TODO: should this just be an ActionController::RoutingError instead? Any benefit to having a separate error type?
   end
   
   module RewriteSubdomainOptions
@@ -24,10 +23,10 @@ module SubdomainRoutes
                 new_subdomain = subdomains.first
               end
             end
-          when Hash
-            unless subdomain_procs.recognize(subdomains[:proc], new_subdomain) && (new_subdomain.blank? || SubdomainRoutes.valid_subdomain?(new_subdomain))
-              raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
-            end
+          # when Hash
+          #   unless subdomain_procs.recognize(subdomains[:proc], new_subdomain) && (new_subdomain.blank? || SubdomainRoutes.valid_subdomain?(new_subdomain))
+          #     raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
+          #   end
           end
         rescue ActionController::RoutingError => e
           raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (#{e.message})"

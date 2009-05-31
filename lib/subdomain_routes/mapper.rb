@@ -6,12 +6,12 @@ module SubdomainRoutes
           options = subdomains.extract_options!
           name = nil
           if subdomains.empty?
-            if subdomain = options.delete(:proc)
-              subdomain_options = { :subdomains => { :proc => subdomain } }
-              name = subdomain
-            else
+            # if subdomain = options.delete(:proc)
+            #   subdomain_options = { :subdomains => { :proc => subdomain } }
+            #   name = subdomain
+            # else
               raise ArgumentError, "Please specify at least one subdomain!"
-            end
+            # end
           else
             subdomains.map!(&:to_s)
             subdomains.map!(&:downcase)

@@ -4,7 +4,7 @@ module SubdomainRoutes
       include SplitHost
       
       def self.included(base)
-        [ :extract_request_environment, :add_route, :clear!, :call ].each { |method| base.alias_method_chain method, :subdomains }
+        [ :extract_request_environment, :add_route ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
       def extract_request_environment_with_subdomains(request)
@@ -21,24 +21,6 @@ module SubdomainRoutes
         end
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
       end
-      
-      def subdomain_procs
-        @subdomain_procs ||= SubdomainRoutes::ProcSet.new
-      end
-
-      def recognize_subdomain(name, &block)
-        subdomain_procs.add_recognizer(name, &block)
-      end
-      
-      def clear_with_subdomains!
-        subdomain_procs.clear!
-        clear_without_subdomains!
-      end
-      
-      def call_with_subdomains(*args)
-        subdomain_procs.flush! unless SubdomainRoutes::Config.manual_flush
-        call_without_subdomains(*args)
-      end
     end
   
     module Route
@@ -51,10 +33,10 @@ module SubdomainRoutes
         case conditions[:subdomains]
         when Array
           result << "conditions[:subdomains].include?(env[:subdomain])"
-        when Hash
-          if subdomain = conditions[:subdomains][:proc]
-            result << %Q{ActionController::Routing::Routes.subdomain_procs.recognize(#{subdomain.inspect}, env[:subdomain])}
-          end
+        # when Hash
+        #   if subdomain = conditions[:subdomains][:proc]
+        #     result << %Q{ActionController::Routing::Routes.subdomain_procs.recognize(#{subdomain.inspect}, env[:subdomain])}
+        #   end
         end
         result
       end
