@@ -134,9 +134,23 @@ describe "URL writing" do
       @boston = City.new(:subdomain => "boston")
     end
     
-    it "should use to_subdomain instead?"
+    it "should add a cities_url named route" do
+      with_host "example.com" do
+        cities_path.should == "/"
+         cities_url.should == "http://example.com/"
+      end
+    end
     
-    it "should be able to generate city_url(@city)"
+    it "should add a generate city_url named_route" do
+      with_host "example.com" do
+        city_path(@boston).should == "http://boston.example.com/"
+         city_url(@boston).should == "http://boston.example.com/"
+      end
+    end
+    
+    it "should set these routes to :get only"
+    
+    it "should observe :except and :only options"
     
     it "should not change the host if the object has the same to_param as the current subdomain" do
       with_host "boston.example.com" do

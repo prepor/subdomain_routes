@@ -61,18 +61,20 @@ describe "subdomain route recognition" do
     before(:each) do
       map_subdomain(:resources => :users) { |user| user.resources :articles }
       @request.request_uri = "/articles"
+      @request.host = "mholling.example.com"
     end
     
     it "should match the route if there is a subdomain" do
-      @request.host = "mholling.example.com"
       lambda { recognize_path(@request) }.should_not raise_error
+    end
+    
+    it "should put the subdomain into the params" do
+      recognize_path(@request)[:user_id].should == @request.subdomain
     end
     
     it "should not match the route if there is no subdomain" do
       @request.host = "example.com"
       lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
     end
-    
-    it "should put the subdomain into the params returned by recognize_path"
   end
 end

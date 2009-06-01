@@ -26,7 +26,7 @@ module SubdomainRoutes
   
     module Route
       def self.included(base)
-        [ :recognition_conditions, :segment_keys ].each { |method|base.alias_method_chain method, :subdomains }
+        [ :recognition_conditions, :segment_keys, :recognition_extraction ].each { |method| base.alias_method_chain method, :subdomains }
       end
       
       def recognition_conditions_with_subdomains
@@ -35,7 +35,9 @@ module SubdomainRoutes
         when Array
           result << "conditions[:subdomains].include?(env[:subdomain])"
         when Hash
-          result << "!env[:subdomain].blank?" if conditions[:subdomains][:resources]
+          result << "(subdomain = env[:subdomain] unless env[:subdomain].blank?)" if conditions[:subdomains][:resources]
+          # TODO: let users override this with their own regexps, etc. (wait is this meant to be in generation?)
+          # TODO: add :subdomains to exempt recognition keys?
         end
         result
       end
@@ -43,6 +45,14 @@ module SubdomainRoutes
       def segment_keys_with_subdomains
         result = segment_keys_without_subdomains
         result.unshift(:subdomain) if conditions[:subdomains].is_a?(Hash) && conditions[:subdomains][:resources]
+        result
+      end
+      
+      def recognition_extraction_with_subdomains
+        result = recognition_extraction_without_subdomains
+        if conditions[:subdomains].is_a?(Hash)
+          result.unshift "params[:#{conditions[:subdomains][:resources].to_s.singularize.foreign_key}] = subdomain\n"
+        end
         result
       end
     end
