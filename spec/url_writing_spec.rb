@@ -123,55 +123,48 @@ describe "URL writing" do
       with_host("www.example.com") { users_url(:subdomain => mixedcase).should == "http://#{lowercase}.example.com/users" }
     end
   end
-  
-  # context "when a :proc subdomain is specified" do          
-  #   before(:each) do
-  #     map_subdomain(:proc => :city) { |city| city.resources :events }
-  #   end
-  #   
-  #   it "should raise a routing error without a recognize proc" do
-  #     with_host "boston.example.com" do
-  #       lambda {  city_events_url }.should raise_error(ActionController::RoutingError)
-  #       lambda { city_events_path }.should raise_error(ActionController::RoutingError)
-  #     end
-  #   end
-  #   
-  #   context "and a recognize proc is defined" do
-  #     before(:each) do
-  #       ActionController::Routing::Routes.recognize_subdomain(:city) { |city| } # this block will be stubbed
-  #     end
-  #     
-  #     it "should not change the host if the recognize proc returns true" do
-  #       with_host "boston.example.com" do
-  #         ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "boston").and_return(true)
-  #         city_events_url.should == "http://boston.example.com/events"
-  #         city_events_path.should == "/events"
-  #       end
-  #     end
-  #   
-  #     it "should raise a routing error if the recognize proc returns false" do
-  #       with_host "www.example.com" do
-  #         ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "www").and_return(false)
-  #         lambda { city_events_url  }.should raise_error(ActionController::RoutingError)
-  #         lambda { city_events_path }.should raise_error(ActionController::RoutingError)
-  #       end
-  #     end
-  #   
-  #     it "should force the host if the recognize proc returns false but a matching subdomain is supplied" do
-  #       with_host "www.example.com" do
-  #         ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "boston").and_return(true)
-  #          city_events_url(:subdomain => :boston).should == "http://boston.example.com/events"
-  #         city_events_path(:subdomain => :boston).should == "http://boston.example.com/events"
-  #       end
-  #     end
-  #   
-  #     it "should raise a routing error if the recognize proc returns false and a non-matching subdomain is supplied" do
-  #       with_host "www.example.com" do
-  #         ActionController::Routing::Routes.subdomain_procs.should_receive(:recognize).twice.with(:city, "hobart").and_return(false)
-  #         lambda {  city_events_url(:subdomain => :hobart) }.should raise_error(ActionController::RoutingError)
-  #         lambda { city_events_path(:subdomain => :hobart) }.should raise_error(ActionController::RoutingError)
-  #       end
-  #     end
-  #   end
-  # end
+
+  context "when a :resources subdomain is specified" do          
+    before(:each) do
+      map_subdomain(:resources => :cities) { |city| city.resources :events }
+      class City < ActiveRecord::Base
+        attr_accessor :subdomain
+        alias_method :to_param, :subdomain
+      end
+      @boston = City.new(:subdomain => "boston")
+    end
+    
+    it "should use to_subdomain instead?"
+    
+    it "should be able to generate city_url(@city)"
+    
+    it "should not change the host if the object has the same to_param as the current subdomain" do
+      with_host "boston.example.com" do
+         city_events_url(@boston).should == "http://boston.example.com/events"
+        city_events_path(@boston).should == "/events"
+      end
+    end
+
+    it "should force the host if the object has a different to_param from the current subdomain" do
+      with_host "example.com" do
+         city_events_url(@boston).should == "http://boston.example.com/events"
+        city_events_path(@boston).should == "http://boston.example.com/events"
+      end
+    end
+
+    it "should raise an error if the object to_param is an invalid subdomain" do
+      @newyork = City.new(:subdomain => "new york")
+      with_host "www.example.com" do
+        lambda {  city_events_url(@newyork) }.should raise_error(ActionController::RoutingError)
+        lambda { city_events_path(@newyork) }.should raise_error(ActionController::RoutingError)
+      end
+    end
+      
+    it "should not allow the subdomain to be manually overridden" do
+      with_host "www.example.com" do
+         city_events_url(@boston, :subdomain => :canberra).should == "http://boston.example.com/events"
+        city_events_path(@boston, :subdomain => :canberra).should == "http://boston.example.com/events"
+      end
+    end
+  end
 end

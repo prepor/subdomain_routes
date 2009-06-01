@@ -4,14 +4,12 @@ module SubdomainRoutes
       module Mapper
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
-          name = nil
           if subdomains.empty?
-            # if subdomain = options.delete(:proc)
-            #   subdomain_options = { :subdomains => { :proc => subdomain } }
-            #   name = subdomain
-            # else
+            if subdomain = options.delete(:resources)
+              subdomain_options = { :subdomains => { :resources => subdomain }, :name_prefix => "#{subdomain.to_s.singularize}_" }
+            else
               raise ArgumentError, "Please specify at least one subdomain!"
-            # end
+            end
           else
             subdomains.map!(&:to_s)
             subdomains.map!(&:downcase)
@@ -22,12 +20,12 @@ module SubdomainRoutes
             if subdomains.include? ""
               raise ArgumentError, "Can't specify a nil subdomain unless you set Config.domain_length!" unless Config.domain_length
             end
-            name = subdomains.reject(&:blank?).first
             subdomain_options = { :subdomains => subdomains }
+            name = subdomains.reject(&:blank?).first
+            name = options.delete(:name) if options.has_key?(:name)
+            name = name.to_s.downcase.gsub(/[^(a-z0-9)]/, ' ').squeeze(' ').strip.gsub(' ', '_') unless name.blank?
+            subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" unless name.blank?
           end
-          name = options.delete(:name) if options.has_key?(:name)
-          name = name.to_s.downcase.gsub(/[^(a-z0-9)]/, ' ').squeeze(' ').strip.gsub(' ', '_') unless name.blank?
-          subdomain_options.merge! :name_prefix => "#{name}_", :namespace => "#{name}/" unless name.blank?
           with_options(subdomain_options.merge(options), &block)
         end
         alias_method :subdomains, :subdomain

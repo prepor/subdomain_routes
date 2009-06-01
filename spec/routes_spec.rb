@@ -46,9 +46,9 @@ describe "subdomain routes" do
     map_subdomain(:Admin, "SUPPORT") { |map| map.options[:subdomains].should == [ "admin", "support" ] }
   end
   
-  # it "should accept a :proc option as the subdomain" do
-  #   map_subdomain(:proc => :name) { |name| name.options[:subdomains].should == { :proc => :name } }
-  # end
+  it "should accept a :resources option as the subdomain" do
+    map_subdomain(:resources => :names) { |name| name.options[:subdomains].should == { :resources => :names } }
+  end
 
   it "should raise ArgumentError if no subdomain is specified" do
     lambda { map_subdomain }.should raise_error(ArgumentError)
@@ -179,35 +179,33 @@ describe "subdomain routes" do
     end
   end
       
-  # context "for a :proc subdomain" do
-  #   it "should set the value a namespace" do
-  #     map_subdomain(:proc => :city) { |city| city.options[:namespace].should == "city/" }
-  #   end
-  # 
-  #   it "should prefix the value to named routes" do
-  #     map_subdomain(:proc => :city) { |city| city.options[:name_prefix].should == "city_" }
-  #   end
-  # 
-  #   it "should set a namespace to the name if specified" do
-  #     map_subdomain(:proc => :city, :name => :something) { |city| city.options[:namespace].should == "something/" }
-  #   end
-  # 
-  #   it "should prefix the name to named routes if specified" do
-  #     map_subdomain(:proc => :city, :name => :something) { |city| city.options[:name_prefix].should == "something_" }
-  #   end
-  # 
-  #   it "should add the specified proc to the route recognition conditions" do
-  #     map_subdomain(:proc => :city) { |city| city.resources :events }
-  #     ActionController::Routing::Routes.routes.each do |route|
-  #       route.conditions[:subdomains].should == { :proc => :city }
-  #     end
-  #   end
-  #     
-  #   it "should add the specified proc to the route generation requirements" do
-  #     map_subdomain(:proc => :city) { |city| city.resources :events }
-  #     ActionController::Routing::Routes.routes.each do |route|
-  #       route.requirements[:subdomains].should == { :proc => :city }
-  #     end
-  #   end
-  # end
+  context "for a :resources subdomain" do
+    it "should not set a namespace" do
+      map_subdomain(:resources => :cities) { |city| city.options[:namespace].should be_nil }
+    end
+  
+    it "should prefix the resource name to named routes" do
+      map_subdomain(:resources => :cities) { |city| city.options[:name_prefix].should == "city_" }
+    end
+  
+    it "should not accept a :name option" do
+      map_subdomain(:resources => :cities, :name => :birds) { |city| city.options[:namespace].should be_nil }
+      map_subdomain(:resources => :cities, :name => :birds) { |city| city.options[:name_prefix].should == "city_" }
+    end
+  
+    it "should add the specified :resources option to the route recognition conditions" do
+      map_subdomain(:resources => :cities) { |city| city.resources :events }
+      ActionController::Routing::Routes.routes.each do |route|
+        route.conditions[:subdomains].should == { :resources => :cities }
+      end
+    end
+    
+    it "should not pass a :requirements?"
+    it "should add the specified :resources option to the route generation requirements" do
+      map_subdomain(:resources => :cities) { |city| city.resources :events }
+      ActionController::Routing::Routes.routes.each do |route|
+        route.requirements[:subdomains].should == { :resources => :cities }
+      end
+    end
+  end
 end

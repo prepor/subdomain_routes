@@ -16,6 +16,7 @@ module SubdomainRoutes
         if subdomains = options.delete(:subdomains)
           options[:conditions] ||= {}
           options[:conditions][:subdomains] = subdomains
+          # TODO: do we need requirements for :resource subdomains?
           options[:requirements] ||= {}
           options[:requirements][:subdomains] = subdomains
         end
@@ -25,7 +26,7 @@ module SubdomainRoutes
   
     module Route
       def self.included(base)
-        base.alias_method_chain :recognition_conditions, :subdomains
+        [ :recognition_conditions, :segment_keys ].each { |method|base.alias_method_chain method, :subdomains }
       end
       
       def recognition_conditions_with_subdomains
@@ -33,11 +34,15 @@ module SubdomainRoutes
         case conditions[:subdomains]
         when Array
           result << "conditions[:subdomains].include?(env[:subdomain])"
-        # when Hash
-        #   if subdomain = conditions[:subdomains][:proc]
-        #     result << %Q{ActionController::Routing::Routes.subdomain_procs.recognize(#{subdomain.inspect}, env[:subdomain])}
-        #   end
+        when Hash
+          result << "!env[:subdomain].blank?" if conditions[:subdomains][:resources]
         end
+        result
+      end
+      
+      def segment_keys_with_subdomains
+        result = segment_keys_without_subdomains
+        result.unshift(:subdomain) if conditions[:subdomains].is_a?(Hash) && conditions[:subdomains][:resources]
         result
       end
     end

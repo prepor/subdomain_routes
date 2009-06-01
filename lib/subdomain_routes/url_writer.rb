@@ -12,7 +12,7 @@ module SubdomainRoutes
     def rewrite_subdomain_options(options, host)
       if subdomains = options[:subdomains]
         old_subdomain, domain = split_host(host)
-        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_s.downcase : old_subdomain
+        new_subdomain = options.has_key?(:subdomain) ? options[:subdomain].to_param.to_s.downcase : old_subdomain
         begin
           case subdomains
           when Array
@@ -23,10 +23,10 @@ module SubdomainRoutes
                 new_subdomain = subdomains.first
               end
             end
-          # when Hash
-          #   unless subdomain_procs.recognize(subdomains[:proc], new_subdomain) && (new_subdomain.blank? || SubdomainRoutes.valid_subdomain?(new_subdomain))
-          #     raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
-          #   end
+          when Hash
+            unless new_subdomain.blank? || SubdomainRoutes.valid_subdomain?(new_subdomain)
+              raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
+            end
           end
         rescue ActionController::RoutingError => e
           raise ActionController::RoutingError, "Route for #{options.inspect} failed to generate (#{e.message})"

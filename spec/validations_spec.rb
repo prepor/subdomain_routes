@@ -9,4 +9,6 @@ describe "ActiveRecord::Base" do
     SubdomainRoutes.should_receive(:valid_subdomain?).with("mholling").and_return(nil)
     User.new(:subdomain => "mholling").valid?.should be_false
   end
+  
+  # it "should have a validates_subdomain_not_reserved"
 end
