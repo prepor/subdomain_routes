@@ -29,7 +29,7 @@ describe "resource" do
       end
     end
     
-    it "should include the subdomains in the routing conditions" do
+    it "should include the subdomains in the routing requirements" do
       ActionController::Routing::Routes.routes.each do |route|
         route.requirements[:subdomains].should == [ "admin" ]
       end

@@ -158,14 +158,14 @@ describe "URL writing" do
         city_events_path(@boston).should == "/events"
       end
     end
-
+  
     it "should force the host if the object has a different to_param from the current subdomain" do
       with_host "example.com" do
          city_events_url(@boston).should == "http://boston.example.com/events"
         city_events_path(@boston).should == "http://boston.example.com/events"
       end
     end
-
+  
     it "should raise an error if the object to_param is an invalid subdomain" do
       @newyork = City.new(:subdomain => "new york")
       with_host "www.example.com" do

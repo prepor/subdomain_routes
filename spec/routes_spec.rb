@@ -132,53 +132,7 @@ describe "subdomain routes" do
       end
     end
   end
-  
-  context "for a single specified subdomain" do
-    before(:each) do
-      map_subdomain(:admin) do |map|
-        map.resources :articles, :has_many => :comments
-        map.foobar "foobar", :controller => "foo", :action => "bar"
-        map.named_route "foobaz", "foobaz", :controller => "foo", :action => "baz"
-        map.connect "/:controller/:action/:id"
-      end
-    end
-
-    it "should add the specified subdomain to the route recognition conditions" do
-      ActionController::Routing::Routes.routes.each do |route|
-        route.conditions[:subdomains].should == [ "admin" ]
-      end
-    end
-
-    it "should add the subdomain to the route generation requirements" do
-      ActionController::Routing::Routes.routes.each do |route|
-        route.requirements[:subdomains].should == [ "admin" ]
-      end
-    end
-  end
-
-  context "for multiple specified subdomains" do
-    before(:each) do
-      map_subdomain(:support, :admin) do |map|
-        map.resources :articles, :has_many => :comments
-        map.foobar "foobar", :controller => "foo", :action => "bar"
-        map.named_route "foobaz", "foobaz", :controller => "foo", :action => "baz"
-        map.connect "/:controller/:action/:id"
-      end
-    end
-
-    it "should add the specified subdomain to the route recognition conditions" do
-      ActionController::Routing::Routes.routes.each do |route|
-        route.conditions[:subdomains].should == [ "support", "admin" ]
-      end
-    end
-
-    it "should not add a subdomain to the route generation requirements" do
-      ActionController::Routing::Routes.routes.each do |route|
-        route.requirements[:subdomains].should == [ "support", "admin" ]
-      end
-    end
-  end
-      
+        
   context "for a :resources subdomain" do
     it "should not set a namespace" do
       map_subdomain(:resources => :cities) { |city| city.options[:namespace].should be_nil }
@@ -192,30 +146,39 @@ describe "subdomain routes" do
       map_subdomain(:resources => :cities, :name => :birds) { |city| city.options[:namespace].should be_nil }
       map_subdomain(:resources => :cities, :name => :birds) { |city| city.options[:name_prefix].should == "city_" }
     end
-  
-#     it "should add the specified :resources option to the route recognition conditions" do
-#       map_subdomain(:resources => :cities) { |city| city.resources :events }
-#       # ActionController::Routing::Routes.routes.each do |route|
-#       #   route.conditions[:subdomains].should == { :resources => "cities" }
-#       # end
-#       puts
-#       puts ActionController::Routing::Routes.routes
-#       ActionController::Routing::Routes.routes.select do |route|
-#         puts route.parameter_shell.inspect
-#         route.conditions[:subdomains] == { :resources => "cities" }
-#       end.size.should == 7    
-# # TODO: should something different go into the conditions??
-#     end
-    
-    it "should not pass a :requirements?"
 
-    # it "should add the specified :resources option to the route generation requirements" do
-    #   map_subdomain(:resources => :cities) { |city| city.resources :events }
-    #   # ActionController::Routing::Routes.routes.each do |route|
-    #   #   route.requirements[:subdomains].should == { :resources => "cities" }
-    #   # end
-    # end
-    
+    it "should add a resource index route" do
+      map_subdomain(:resources => :cities) { |city| city.resources :events }
+      ActionController::Routing::Routes.routes.find do |route|
+        route.conditions == { :method => :get } &&
+        route.requirements == { :controller => "cities", :action => "index", :subdomains => [""] }
+      end.should be_true
+      with_host "boston.example.com" do
+        cities_path.should == "http://example.com/"
+         cities_url.should == "http://example.com/"
+      end
+      with_host "example.com" do
+        cities_path.should == "/"
+         cities_url.should == "http://example.com/"
+      end
+    end
+
+    it "should add a resource show route" do
+      map_subdomain(:resources => :cities) { |city| city.resources :events }
+      ActionController::Routing::Routes.routes.find do |route|
+        route.conditions == { :method => :get, :subdomains => "cities" } &&
+        route.requirements == { :controller => "cities", :action => "show", :subdomains => "cities" }
+      end.should be_true
+      with_host "boston.example.com" do
+        city_path("hobart").should == "http://hobart.example.com/"
+         city_url("hobart").should == "http://hobart.example.com/"
+      end
+      with_host "hobart.example.com" do
+        city_path("hobart").should == "/"
+         city_url("hobart").should == "http://hobart.example.com/"
+      end
+    end
+      
     it "should pluralize and stringify the argument"
     
     it "should test segment_keys"

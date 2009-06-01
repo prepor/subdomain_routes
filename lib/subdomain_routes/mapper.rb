@@ -9,7 +9,8 @@ module SubdomainRoutes
               resources = subdomain.to_s.downcase.pluralize
               raise ArgumentError, "Invalid resource name" if resources.blank? # TODO: test this!
               subdomain_options = { :subdomains => { :resources => resources }, :name_prefix => "#{resources.singularize}_" }
-              named_route resources, "/", :controller => resources, :action => "index", :conditions => { :method => :get }
+              named_route resources, "/", :controller => resources, :action => "index", :conditions => { :method => :get }, :requirements => { :subdomains => [""] }
+              # TODO: only map ^^^ this route ^^^ if domain_length is set!
               named_route resources.singularize, "/", :controller => resources, :action => "show", :conditions => { :method => :get }, :subdomains => { :resources => resources }
               # TODO: consider :only, :except options!
             else
