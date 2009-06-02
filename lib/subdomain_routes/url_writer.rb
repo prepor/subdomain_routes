@@ -23,8 +23,7 @@ module SubdomainRoutes
                 new_subdomain = subdomains.first
               end
             end
-          when String
-            # TODO: use conditions regexp to check subdomain
+          when Symbol
             unless new_subdomain.blank? || SubdomainRoutes.valid_subdomain?(new_subdomain)
               raise ActionController::RoutingError, "subdomain #{new_subdomain.inspect} is invalid"
             end            

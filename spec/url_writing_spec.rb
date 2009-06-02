@@ -127,30 +127,37 @@ describe "URL writing" do
   context "when a :resources subdomain is specified" do          
     before(:each) do
       map_subdomain(:resources => :cities) { |city| city.resources :events }
-      class City < ActiveRecord::Base
-        attr_accessor :subdomain
-        alias_method :to_param, :subdomain
-      end
-      @boston = City.new(:subdomain => "boston")
+      class City < ActiveRecord::Base; end
+      @boston = City.new
+      @boston.stub!(:new_record?).and_return(false)
+      @boston.stub!(:to_param).and_return("boston")
     end
     
-    it "should add a cities_url named route" do
+    it "should add a resource index named route" do
+      with_host "boston.example.com" do
+        cities_path.should == "http://example.com/"
+        cities_url.should == "http://example.com/"
+        polymorphic_path(City.new).should == "http://example.com/"
+      end
       with_host "example.com" do
         cities_path.should == "/"
-         cities_url.should == "http://example.com/"
+        cities_url.should == "http://example.com/"
+        polymorphic_path(City.new).should == "/"
       end
     end
     
-    it "should add a generate city_url named_route" do
-      with_host "example.com" do
+    it "should add a resource show named route" do
+      with_host "hobart.example.com" do
         city_path(@boston).should == "http://boston.example.com/"
-         city_url(@boston).should == "http://boston.example.com/"
+        city_url(@boston).should == "http://boston.example.com/"
+        polymorphic_path(@boston).should == "http://boston.example.com/"
+      end
+      with_host "boston.example.com" do
+        city_path(@boston).should == "/"
+        city_url(@boston).should == "http://boston.example.com/"
+        polymorphic_path(@boston).should == "/"
       end
     end
-    
-    it "should set these routes to :get only"
-    
-    it "should observe :except and :only options"
     
     it "should not change the host if the object has the same to_param as the current subdomain" do
       with_host "boston.example.com" do
@@ -167,7 +174,9 @@ describe "URL writing" do
     end
   
     it "should raise an error if the object to_param is an invalid subdomain" do
-      @newyork = City.new(:subdomain => "new york")
+      @newyork = City.new
+      @newyork.stub!(:new_record?).and_return(false)
+      @newyork.stub!(:to_param).and_return("new york")
       with_host "www.example.com" do
         lambda {  city_events_url(@newyork) }.should raise_error(ActionController::RoutingError)
         lambda { city_events_path(@newyork) }.should raise_error(ActionController::RoutingError)

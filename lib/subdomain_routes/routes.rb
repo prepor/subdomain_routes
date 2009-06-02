@@ -16,16 +16,14 @@ module SubdomainRoutes
         if subdomains = options.delete(:subdomains)
           options[:conditions] ||= {}
           options[:requirements] ||= {}
-          case subdomains
-          when Array
-            options[:conditions][:subdomains] = subdomains
-            options[:requirements][:subdomains] = subdomains
-          when Hash
-            options[:conditions][:subdomains] = subdomains[:resources]
-            options[:requirements][:subdomains] = subdomains[:resources]
-          end
+          options[:conditions][:subdomains] = subdomains
+          options[:requirements][:subdomains] = subdomains
         end
         with_options(options) { |routes| routes.add_route_without_subdomains(*args) }
+      end
+      
+      def reserved_subdomains
+        routes.map(&:reserved_subdomains).flatten.uniq
       end
     end
   
@@ -39,7 +37,7 @@ module SubdomainRoutes
         case conditions[:subdomains]
         when Array
           result << "conditions[:subdomains].include?(env[:subdomain])"
-        when String
+        when Symbol
           result << "(subdomain = env[:subdomain] unless env[:subdomain].blank?)"
         end
         result
@@ -47,16 +45,18 @@ module SubdomainRoutes
       
       def segment_keys_with_subdomains
         result = segment_keys_without_subdomains
-        result.unshift(:subdomain) if conditions[:subdomains].is_a? String #&& conditions[:subdomains][:resources]
+        result.unshift(:subdomain) if conditions[:subdomains].is_a? Symbol
         result
       end
       
       def recognition_extraction_with_subdomains
         result = recognition_extraction_without_subdomains
-        if conditions[:subdomains].is_a? String
-          result.unshift "params[:#{conditions[:subdomains].singularize.foreign_key}] = subdomain\n"
-        end
+        result.unshift "\nparams[#{conditions[:subdomains].inspect}] = subdomain\n" if conditions[:subdomains].is_a? Symbol
         result
+      end
+      
+      def reserved_subdomains
+        conditions[:subdomains].is_a?(Array) ? conditions[:subdomains] : []
       end
     end
   end

@@ -60,21 +60,42 @@ describe "subdomain route recognition" do
   context "for a :resources subdomain" do
     before(:each) do
       map_subdomain(:resources => :users) { |user| user.resources :articles }
-      @request.request_uri = "/articles"
-      @request.host = "mholling.example.com"
     end
     
-    it "should match the route if there is a subdomain" do
-      lambda { recognize_path(@request) }.should_not raise_error
+    context "when a nested route is requested" do
+      before(:each) do
+        @request.host = "mholling.example.com"
+        @request.request_uri = "/articles"
+      end
+      
+      it "should match the route if there is a subdomain" do
+        lambda { recognize_path(@request) }.should_not raise_error
+      end
+    
+      it "should put the subdomain into the params as :resource_id" do
+        recognize_path(@request)[:user_id].should == "mholling"
+      end
+    end
+
+    context "when the resource show route is requested" do
+      it "should put the subdomain into the params as :id" do
+        @request.host = "mholling.example.com"
+        @request.request_uri = "/"
+        params = recognize_path(@request)
+        params[:id].should == "mholling"
+        params[:action].should == "show"
+        params[:controller].should == "users"
+      end
     end
     
-    it "should put the subdomain into the params" do
-      recognize_path(@request)[:user_id].should == @request.subdomain
-    end
-    
-    it "should not match the route if there is no subdomain" do
-      @request.host = "example.com"
-      lambda { recognize_path(@request) }.should raise_error(ActionController::RoutingError)
+    context "when the resource index route is requested" do
+      it "match the route" do
+        @request.host = "example.com"
+        @request.request_uri = "/"
+        params = recognize_path(@request)
+        params[:action].should == "index"
+        params[:controller].should == "users"
+      end
     end
   end
 end

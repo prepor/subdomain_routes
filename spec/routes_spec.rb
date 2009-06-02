@@ -47,7 +47,11 @@ describe "subdomain routes" do
   end
   
   it "should accept a :resources option as the subdomain" do
-    map_subdomain(:resources => :names) { |name| name.options[:subdomains].should == { :resources => "names" } }
+    map_subdomain(:resources => :names) { |name| name.options[:subdomains].should == :name_id }
+  end
+
+  it "should raise ArgumentError if a nil :resources option is specified as the subdomain" do
+    lambda { map_subdomain(:resources => "") { } }.should raise_error(ArgumentError)
   end
 
   it "should raise ArgumentError if no subdomain is specified" do
@@ -134,55 +138,78 @@ describe "subdomain routes" do
   end
         
   context "for a :resources subdomain" do
-    it "should not set a namespace" do
-      map_subdomain(:resources => :cities) { |city| city.options[:namespace].should be_nil }
+    it "should turn the resource name into a foreign key symbol" do
+      map_subdomain(:resources => :cities) { |city| city.options[:subdomains].should == :city_id }
+    end
+
+    it "should accept a singular resource name" do
+      map_subdomain(:resources => :city) { |city| city.options[:subdomains].should == :city_id }
+    end
+    
+    it "should accept a string resource name" do
+      map_subdomain(:resources => "cities") { |city| city.options[:subdomains].should == :city_id }
+    end
+    
+    it "should set the resource name as a namespace" do
+      map_subdomain(:resources => :cities) { |city| city.options[:namespace].should == "city/" }
     end
   
     it "should prefix the resource name to named routes" do
       map_subdomain(:resources => :cities) { |city| city.options[:name_prefix].should == "city_" }
     end
-  
-    it "should not accept a :name option" do
-      map_subdomain(:resources => :cities, :name => :birds) { |city| city.options[:namespace].should be_nil }
-      map_subdomain(:resources => :cities, :name => :birds) { |city| city.options[:name_prefix].should == "city_" }
+
+    it "should add a resource show route" do
+      map_subdomain(:resources => :cities) { }
+      ActionController::Routing::Routes.routes.select do |route|
+        route.conditions == { :method => :get, :subdomains => :id } &&
+        route.requirements == { :controller => "cities", :action => "show", :subdomains => :id }
+      end.size == 1
     end
 
     it "should add a resource index route" do
-      map_subdomain(:resources => :cities) { |city| city.resources :events }
-      ActionController::Routing::Routes.routes.find do |route|
-        route.conditions == { :method => :get } &&
+      map_subdomain(:resources => :cities) { }
+      ActionController::Routing::Routes.routes.select do |route|
+        route.conditions == { :method => :get, :subdomains => [""] } &&
         route.requirements == { :controller => "cities", :action => "index", :subdomains => [""] }
-      end.should be_true
-      with_host "boston.example.com" do
-        cities_path.should == "http://example.com/"
-         cities_url.should == "http://example.com/"
-      end
-      with_host "example.com" do
-        cities_path.should == "/"
-         cities_url.should == "http://example.com/"
-      end
+      end.size.should == 1
     end
-
-    it "should add a resource show route" do
-      map_subdomain(:resources => :cities) { |city| city.resources :events }
-      ActionController::Routing::Routes.routes.find do |route|
-        route.conditions == { :method => :get, :subdomains => "cities" } &&
-        route.requirements == { :controller => "cities", :action => "show", :subdomains => "cities" }
-      end.should be_true
-      with_host "boston.example.com" do
-        city_path("hobart").should == "http://hobart.example.com/"
-         city_url("hobart").should == "http://hobart.example.com/"
+    
+    context "when the domain_length is not set" do
+      before(:each) do
+        SubdomainRoutes::Config.stub!(:domain_length).and_return(nil)
       end
-      with_host "hobart.example.com" do
-        city_path("hobart").should == "/"
-         city_url("hobart").should == "http://hobart.example.com/"
-      end
-    end
       
-    it "should pluralize and stringify the argument"
-    
-    it "should test segment_keys"
-    
-    it "should test recognition_extraction? (or have I already done that?)"
+      it "should not add a resource index route" do
+        map_subdomain(:resources => :cities) { }
+        ActionController::Routing::Routes.routes.select do |route|
+          route.conditions == { :method => :get, :subdomains => [""] } &&
+          route.requirements == { :controller => "cities", :action => "index", :subdomains => [""] }
+        end.size.should == 0
+      end
+    end
+                
+    # it "should add :subdomain to the start of each route's segment_keys" do
+    #   route = ActionController::Routing::Route.new([], {}, { :subdomains => :city_id })
+    #   route.segment_keys.first.should == :subdomain
+    # end
+    # 
+    # it "should add a line in each route's recognition_extraction to extract the subdomain to the params" do
+    #   route = ActionController::Routing::Route.new([], {}, { :subdomains => :city_id })
+    #   route.send(:recognition_extraction).should include("\nparams[:city_id] = subdomain\n")
+    # end
+  end
+end
+
+describe "ActionController::Routing::Routes" do
+  before(:each) do
+    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
+    ActionController::Routing::Routes.clear!
+    map_subdomain(:www, nil) { |www| www.root :controller => "homes", :action => "show" }
+  end
+  
+  it "should know a list of its reserved subdomains" do
+    ActionController::Routing::Routes.reserved_subdomains.should == [ "www", "" ]
+    ActionController::Routing::Routes.clear!
+    ActionController::Routing::Routes.reserved_subdomains.should be_empty
   end
 end
