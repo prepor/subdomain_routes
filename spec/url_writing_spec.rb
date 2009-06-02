@@ -124,40 +124,27 @@ describe "URL writing" do
     end
   end
 
-  context "when a :resources subdomain is specified" do          
+  context "when a :model subdomain is specified" do          
     before(:each) do
-      map_subdomain(:resources => :cities) { |city| city.resources :events }
+      map_subdomain(:model => :city) { |city| city.resources :events }
       class City < ActiveRecord::Base; end
       @boston = City.new
       @boston.stub!(:new_record?).and_return(false)
       @boston.stub!(:to_param).and_return("boston")
     end
-    
-    it "should add a resource index named route" do
-      with_host "boston.example.com" do
-        cities_path.should == "http://example.com/"
-        cities_url.should == "http://example.com/"
-        polymorphic_path(City.new).should == "http://example.com/"
-      end
-      with_host "example.com" do
-        cities_path.should == "/"
-        cities_url.should == "http://example.com/"
-        polymorphic_path(City.new).should == "/"
-      end
-    end
-    
-    it "should add a resource show named route" do
-      with_host "hobart.example.com" do
-        city_path(@boston).should == "http://boston.example.com/"
-        city_url(@boston).should == "http://boston.example.com/"
-        polymorphic_path(@boston).should == "http://boston.example.com/"
-      end
-      with_host "boston.example.com" do
-        city_path(@boston).should == "/"
-        city_url(@boston).should == "http://boston.example.com/"
-        polymorphic_path(@boston).should == "/"
-      end
-    end
+        
+    # it "should add a model_path() named route" do
+    #   with_host "hobart.example.com" do
+    #     city_path(@boston).should == "http://boston.example.com/"
+    #     city_url(@boston).should == "http://boston.example.com/"
+    #     polymorphic_path(@boston).should == "http://boston.example.com/"
+    #   end
+    #   with_host "boston.example.com" do
+    #     city_path(@boston).should == "/"
+    #     city_url(@boston).should == "http://boston.example.com/"
+    #     polymorphic_path(@boston).should == "/"
+    #   end
+    # end
     
     it "should not change the host if the object has the same to_param as the current subdomain" do
       with_host "boston.example.com" do

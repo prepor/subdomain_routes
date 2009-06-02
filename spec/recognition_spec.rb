@@ -57,9 +57,9 @@ describe "subdomain route recognition" do
     end
   end
   
-  context "for a :resources subdomain" do
+  context "for a :model subdomain" do
     before(:each) do
-      map_subdomain(:resources => :users) { |user| user.resources :articles }
+      map_subdomain(:model => :user) { |user| user.resources :articles }
     end
     
     context "when a nested route is requested" do
@@ -72,30 +72,20 @@ describe "subdomain route recognition" do
         lambda { recognize_path(@request) }.should_not raise_error
       end
     
-      it "should put the subdomain into the params as :resource_id" do
+      it "should put the subdomain into the params as :model_id" do
         recognize_path(@request)[:user_id].should == "mholling"
       end
     end
 
-    context "when the resource show route is requested" do
-      it "should put the subdomain into the params as :id" do
-        @request.host = "mholling.example.com"
-        @request.request_uri = "/"
-        params = recognize_path(@request)
-        params[:id].should == "mholling"
-        params[:action].should == "show"
-        params[:controller].should == "users"
-      end
-    end
-    
-    context "when the resource index route is requested" do
-      it "match the route" do
-        @request.host = "example.com"
-        @request.request_uri = "/"
-        params = recognize_path(@request)
-        params[:action].should == "index"
-        params[:controller].should == "users"
-      end
-    end
+    # context "when the model() route is requested" do
+    #   it "should put the subdomain into the params as :id" do
+    #     @request.host = "mholling.example.com"
+    #     @request.request_uri = "/"
+    #     params = recognize_path(@request)
+    #     params[:id].should == "mholling"
+    #     params[:action].should == "show"
+    #     params[:controller].should == "users"
+    #   end
+    # end
   end
 end

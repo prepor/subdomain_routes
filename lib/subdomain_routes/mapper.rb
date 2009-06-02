@@ -5,16 +5,13 @@ module SubdomainRoutes
         def subdomain(*subdomains, &block)
           options = subdomains.extract_options!
           if subdomains.empty?
-            if subdomain = options.delete(:resources)
-              raise ArgumentError, "Invalid resource name" if subdomain.blank?
-              resources = subdomain.to_s.downcase.pluralize
-              resource = resources.singularize
-              resource_id = resource.foreign_key.to_sym
-              named_route resource,  "/", :controller => resources, :action => "show",  :conditions => { :method => :get, :subdomains => :id  }, :requirements => { :subdomains => :id  }
-              named_route resources, "/", :controller => resources, :action => "index", :conditions => { :method => :get, :subdomains => [""] }, :requirements => { :subdomains => [""] } if Config.domain_length
-              # TODO: do we want the other REST options? Do we want :except and :only as well?
-
-              subdomain_options = { :subdomains => resource_id, :name_prefix => "#{resource}_", :namespace => "#{resource}/" }
+            if model = options.delete(:model)
+              raise ArgumentError, "Invalid model name" if model.blank?
+              models = model.to_s.downcase.pluralize
+              model = models.singularize
+              model_id = model.foreign_key.to_sym
+              # named_route model,  "/", :controller => models, :action => "show",  :conditions => { :method => :get, :subdomains => :id  }, :requirements => { :subdomains => :id  }
+              subdomain_options = { :subdomains => model_id, :name_prefix => "#{model}_", :namespace => "#{model}/" }
             else
               raise ArgumentError, "Please specify at least one subdomain!"
             end

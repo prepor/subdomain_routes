@@ -45,13 +45,9 @@ describe "subdomain routes" do
   it "should downcase the subdomains" do
     map_subdomain(:Admin, "SUPPORT") { |map| map.options[:subdomains].should == [ "admin", "support" ] }
   end
-  
-  it "should accept a :resources option as the subdomain" do
-    map_subdomain(:resources => :names) { |name| name.options[:subdomains].should == :name_id }
-  end
 
-  it "should raise ArgumentError if a nil :resources option is specified as the subdomain" do
-    lambda { map_subdomain(:resources => "") { } }.should raise_error(ArgumentError)
+  it "should raise ArgumentError if a nil :model option is specified as the subdomain" do
+    lambda { map_subdomain(:model => "") { } }.should raise_error(ArgumentError)
   end
 
   it "should raise ArgumentError if no subdomain is specified" do
@@ -137,65 +133,33 @@ describe "subdomain routes" do
     end
   end
         
-  context "for a :resources subdomain" do
-    it "should turn the resource name into a foreign key symbol" do
-      map_subdomain(:resources => :cities) { |city| city.options[:subdomains].should == :city_id }
+  context "for a :model subdomain" do
+    it "should accept a :model option as the subdomain and turn it into a foreign key symbol" do
+      map_subdomain(:model => :city) { |city| city.options[:subdomains].should == :city_id }
     end
 
-    it "should accept a singular resource name" do
-      map_subdomain(:resources => :city) { |city| city.options[:subdomains].should == :city_id }
+    it "should singularize a plural model name" do
+      map_subdomain(:model => :cities) { |city| city.options[:subdomains].should == :city_id }
     end
     
-    it "should accept a string resource name" do
-      map_subdomain(:resources => "cities") { |city| city.options[:subdomains].should == :city_id }
+    it "should accept a string model name" do
+      map_subdomain(:model => "city") { |city| city.options[:subdomains].should == :city_id }
     end
     
-    it "should set the resource name as a namespace" do
-      map_subdomain(:resources => :cities) { |city| city.options[:namespace].should == "city/" }
+    it "should set the model name as a namespace" do
+      map_subdomain(:model => :city) { |city| city.options[:namespace].should == "city/" }
     end
   
-    it "should prefix the resource name to named routes" do
-      map_subdomain(:resources => :cities) { |city| city.options[:name_prefix].should == "city_" }
+    it "should prefix the model name to named routes" do
+      map_subdomain(:model => :city) { |city| city.options[:name_prefix].should == "city_" }
     end
 
-    it "should add a resource show route" do
-      map_subdomain(:resources => :cities) { }
-      ActionController::Routing::Routes.routes.select do |route|
-        route.conditions == { :method => :get, :subdomains => :id } &&
-        route.requirements == { :controller => "cities", :action => "show", :subdomains => :id }
-      end.size == 1
-    end
-
-    it "should add a resource index route" do
-      map_subdomain(:resources => :cities) { }
-      ActionController::Routing::Routes.routes.select do |route|
-        route.conditions == { :method => :get, :subdomains => [""] } &&
-        route.requirements == { :controller => "cities", :action => "index", :subdomains => [""] }
-      end.size.should == 1
-    end
-    
-    context "when the domain_length is not set" do
-      before(:each) do
-        SubdomainRoutes::Config.stub!(:domain_length).and_return(nil)
-      end
-      
-      it "should not add a resource index route" do
-        map_subdomain(:resources => :cities) { }
-        ActionController::Routing::Routes.routes.select do |route|
-          route.conditions == { :method => :get, :subdomains => [""] } &&
-          route.requirements == { :controller => "cities", :action => "index", :subdomains => [""] }
-        end.size.should == 0
-      end
-    end
-                
-    # it "should add :subdomain to the start of each route's segment_keys" do
-    #   route = ActionController::Routing::Route.new([], {}, { :subdomains => :city_id })
-    #   route.segment_keys.first.should == :subdomain
-    # end
-    # 
-    # it "should add a line in each route's recognition_extraction to extract the subdomain to the params" do
-    #   route = ActionController::Routing::Route.new([], {}, { :subdomains => :city_id })
-    #   route.send(:recognition_extraction).should include("\nparams[:city_id] = subdomain\n")
+    # it "should add a model() route" do
+    #   map_subdomain(:model => :city) { }
+    #   ActionController::Routing::Routes.routes.select do |route|
+    #     route.conditions == { :method => :get, :subdomains => :id } &&
+    #     route.requirements == { :controller => "cities", :action => "show", :subdomains => :id }
+    #   end.size == 1
     # end
   end
 end
