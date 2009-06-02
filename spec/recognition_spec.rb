@@ -76,16 +76,5 @@ describe "subdomain route recognition" do
         recognize_path(@request)[:user_id].should == "mholling"
       end
     end
-
-    # context "when the model() route is requested" do
-    #   it "should put the subdomain into the params as :id" do
-    #     @request.host = "mholling.example.com"
-    #     @request.request_uri = "/"
-    #     params = recognize_path(@request)
-    #     params[:id].should == "mholling"
-    #     params[:action].should == "show"
-    #     params[:controller].should == "users"
-    #   end
-    # end
   end
 end

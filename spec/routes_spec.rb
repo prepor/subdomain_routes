@@ -153,14 +153,6 @@ describe "subdomain routes" do
     it "should prefix the model name to named routes" do
       map_subdomain(:model => :city) { |city| city.options[:name_prefix].should == "city_" }
     end
-
-    # it "should add a model() route" do
-    #   map_subdomain(:model => :city) { }
-    #   ActionController::Routing::Routes.routes.select do |route|
-    #     route.conditions == { :method => :get, :subdomains => :id } &&
-    #     route.requirements == { :controller => "cities", :action => "show", :subdomains => :id }
-    #   end.size == 1
-    # end
   end
 end
 

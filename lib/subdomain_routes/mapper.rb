@@ -10,7 +10,6 @@ module SubdomainRoutes
               models = model.to_s.downcase.pluralize
               model = models.singularize
               model_id = model.foreign_key.to_sym
-              # named_route model,  "/", :controller => models, :action => "show",  :conditions => { :method => :get, :subdomains => :id  }, :requirements => { :subdomains => :id  }
               subdomain_options = { :subdomains => model_id, :name_prefix => "#{model}_", :namespace => "#{model}/" }
             else
               raise ArgumentError, "Please specify at least one subdomain!"

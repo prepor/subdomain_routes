@@ -132,20 +132,7 @@ describe "URL writing" do
       @boston.stub!(:new_record?).and_return(false)
       @boston.stub!(:to_param).and_return("boston")
     end
-        
-    # it "should add a model_path() named route" do
-    #   with_host "hobart.example.com" do
-    #     city_path(@boston).should == "http://boston.example.com/"
-    #     city_url(@boston).should == "http://boston.example.com/"
-    #     polymorphic_path(@boston).should == "http://boston.example.com/"
-    #   end
-    #   with_host "boston.example.com" do
-    #     city_path(@boston).should == "/"
-    #     city_url(@boston).should == "http://boston.example.com/"
-    #     polymorphic_path(@boston).should == "/"
-    #   end
-    # end
-    
+
     it "should not change the host if the object has the same to_param as the current subdomain" do
       with_host "boston.example.com" do
          city_events_url(@boston).should == "http://boston.example.com/events"
