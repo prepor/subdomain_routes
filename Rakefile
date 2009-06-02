@@ -11,7 +11,7 @@ begin
       one or many specified subdomains. An URL will be recognised only if the host subdomain matches the
       subdomain specified in the route. Route generation is also enhanced, so that the subdomain of a
       generated URL (or path) will be changed if the requested route has a different subdomain to that of
-      the current request. Dynamic subdomain routes can also be defined.
+      the current request. Model-based subdomain routes can also be defined.
     EOF
     gem.email = "mdholling@gmail.com"
     gem.homepage = "http://github.com/mholling/subdomain_routes"
