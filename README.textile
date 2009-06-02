@@ -12,7 +12,7 @@ The gem is called <code>SubdomainRoutes</code>, and is easy to install from GitH
 
 <pre>
 gem sources -a http://gems.github.com
-sudo gem install mholling-active_url
+sudo gem install mholling-subdomain_routes
 </pre>
 
 In your Rails app, make sure to specify the gem dependency in environment.rb:
@@ -21,7 +21,7 @@ In your Rails app, make sure to specify the gem dependency in environment.rb:
 config.gem "mholling-subdomain_routes", :lib => "subdomain_routes", :source => "http://gems.github.com"
 </pre>
 
-(Note that the SubdomainRoutes gem requires Rails 2.2 or later to run since it changes <code:ruby>ActionController::Resources::INHERITABLE_OPTIONS</code>. If you're on an older version of Rails, you need to get with the program. ;)
+(Note that the SubdomainRoutes gem requires Rails 2.2 or later to run since it changes <code>ActionController::Resources::INHERITABLE_OPTIONS</code>. If you're on an older version of Rails, you need to get with the program. ;)
 
 Finally, you'll probably want to configure your session to work across all your subdomains. You can do this in your environment files:
 
