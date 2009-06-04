@@ -1,7 +1,5 @@
 describe "ActiveRecord::Base" do
   before(:each) do
-    ActionController::Routing::Routes.clear!
-    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
     class User < ActiveRecord::Base
       attr_accessor :subdomain
     end

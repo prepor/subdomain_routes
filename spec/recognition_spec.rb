@@ -2,8 +2,6 @@ require 'spec_helper'
 
 describe "subdomain route recognition" do
   before(:each) do
-    ActionController::Routing::Routes.clear!
-    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
     @request = ActionController::TestRequest.new
     @request.host = "www.example.com"
     @request.request_uri = "/items/2"

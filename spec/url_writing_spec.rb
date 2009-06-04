@@ -1,11 +1,6 @@
 require 'spec_helper'
 
 describe "URL writing" do
-  before(:each) do
-    ActionController::Routing::Routes.clear!
-    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
-  end
-  
   { "nil" => nil, "an IP address" => "207.192.69.152" }.each do |host_type, host|
     context "when the host is #{host_type}" do
       it "should raise an error when a subdomain route is requested" do

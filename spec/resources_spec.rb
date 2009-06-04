@@ -1,11 +1,6 @@
 require 'spec_helper'
 
 describe "resource" do
-  before(:each) do
-    ActionController::Routing::Routes.clear!
-    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
-  end
-  
   describe "mappings" do
     it "should pass the specified subdomains to any nested routes" do
       map_subdomain(:admin) do |admin|

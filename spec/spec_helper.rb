@@ -10,7 +10,12 @@ require 'action_mailer' # only required for testing optional features, not requi
 require 'subdomain_routes'
 
 Spec::Runner.configure do |config|
+  config.before(:each) do
+    ActionController::Routing::Routes.clear!
+    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
+  end
 end
+
 require 'action_controller/test_process'
 require 'action_view/test_case'
 

@@ -1,22 +1,12 @@
 require 'spec_helper'
 
 describe "subdomain extraction" do
-  before(:each) do
-    ActionController::Routing::Routes.clear!
-  end
-  
   include SubdomainRoutes::SplitHost
 
   it "should add a subdomain method to requests" do
     request = ActionController::TestRequest.new
     request.host = "admin.example.com"
     request.subdomain.should == "admin"
-  end
-
-  describe "configuration" do
-    it "should have a default domain length of nil" do
-      SubdomainRoutes::Config.domain_length.should be_nil
-    end
   end
   
   it "should raise an error if no host is supplied" do
@@ -44,7 +34,7 @@ describe "subdomain extraction" do
     before(:each) do
       SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
     end        
-  
+      
     it "should find the domain" do
       domain_for_host("www.example.com").should == "example.com"
     end

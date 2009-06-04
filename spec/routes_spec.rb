@@ -1,11 +1,6 @@
 require 'spec_helper'
 
 describe "subdomain routes" do
-  before(:each) do
-    ActionController::Routing::Routes.clear!
-    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
-  end
-    
   it "should check the validity of each subdomain" do
     SubdomainRoutes.should_receive(:valid_subdomain?).twice.and_return(true, true)
     lambda { map_subdomain(:www, :www1) { } }.should_not raise_error
@@ -158,8 +153,6 @@ end
 
 describe "ActionController::Routing::Routes" do
   before(:each) do
-    SubdomainRoutes::Config.stub!(:domain_length).and_return(2)
-    ActionController::Routing::Routes.clear!
     map_subdomain(:www, nil) { |www| www.root :controller => "homes", :action => "show" }
   end
   
