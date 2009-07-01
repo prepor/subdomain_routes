@@ -5,7 +5,10 @@ describe "URL writing" do
     context "when the host is #{host_type}" do
       it "should raise an error when a subdomain route is requested" do
         map_subdomain(:www) { |www| www.resources :users }
-        with_host(host) { lambda { www_users_path }.should raise_error(SubdomainRoutes::HostNotSupplied) }
+        with_host(host) do
+          lambda { www_users_path }.should raise_error(SubdomainRoutes::HostNotSupplied) 
+          lambda { url_for(:controller => "users", :action => "index", :subdomains => ["www"]) }.should raise_error(SubdomainRoutes::HostNotSupplied) 
+        end
       end
       
       context "and a non-subdomain route is requested" do
@@ -16,6 +19,7 @@ describe "URL writing" do
         it "should not raise an error when the route is a path" do
           with_host(host) do
             lambda { users_path }.should_not raise_error
+            lambda { url_for(:controller => "users", :action => "index", :only_path => true) }.should_not raise_error
           end
         end
       end
@@ -27,39 +31,60 @@ describe "URL writing" do
     context "when a #{type} subdomain is specified" do
       before(:each) do
         map_subdomain(subdomain, :name => nil) { |map| map.resources :users }
+        @url_options = { :controller => "users", :action => "index", :subdomains => [ subdomain.to_s ] }
+        @path_options = @url_options.merge(:only_path => true)
       end
   
       it "should not change the host for an URL if the host subdomain matches" do
-        with_host(host) { users_url.should == "http://#{host}/users" }
+        with_host(host) do
+          users_url.should == "http://#{host}/users" 
+          url_for(@url_options).should == "http://#{host}/users"
+        end
       end
     
       it "should change the host for an URL if the host subdomain differs" do
-        with_host("other.example.com") { users_url.should == "http://#{host}/users" }
+        with_host "other.example.com" do
+          users_url.should == "http://#{host}/users"
+          url_for(@url_options).should == "http://#{host}/users"
+        end
       end
 
       it "should not force the host for a path if the host subdomain matches" do
-        with_host(host) { users_path.should == "/users" }
+        with_host(host) do
+          users_path.should == "/users" 
+          url_for(@path_options).should == "/users" 
+        end
       end
 
       it "should force the host for a path if the host subdomain differs" do
-        with_host("other.example.com") { users_path.should == "http://#{host}/users" }
+        with_host "other.example.com" do
+          users_path.should == "http://#{host}/users"
+          url_for(@path_options).should == "http://#{host}/users"
+        end
       end
   
       context "and a subdomain different from the host subdomain is explicitly requested" do
         it "should change the host if the requested subdomain matches" do
-          with_host("other.example.com") { users_path(:subdomain => subdomain).should == "http://#{host}/users" }
+          with_host "other.example.com" do
+            users_path(:subdomain => subdomain).should == "http://#{host}/users"
+            url_for(@path_options.merge(:subdomain => subdomain)).should == "http://#{host}/users"
+          end
         end
     
         it "should raise a routing error if the requested subdomain doesn't match" do
           with_host(host) do
             lambda { users_path(:subdomain => :other) }.should raise_error(ActionController::RoutingError)
+            lambda { url_for(@path_options.merge(:subdomain => :other)) }.should raise_error(ActionController::RoutingError)
           end
         end
       end
       
       context "and the current host's subdomain is explicitly requested" do
         it "should not force the host for a path if the subdomain matches" do
-          with_host(host) { users_path(:subdomain => subdomain).should == "/users" }
+          with_host(host) do
+            users_path(:subdomain => subdomain).should == "/users" 
+            url_for(@path_options.merge(:subdomain => subdomain)).should == "/users" 
+          end
         end
       end
     end
@@ -71,17 +96,25 @@ describe "URL writing" do
       before(:each) do
         args = subdomains + [ :name => nil ]
         map_subdomain(*args) { |map| map.resources :items }
+        @url_options = { :controller => "items", :action => "index", :subdomains => subdomains.map(&:to_s) }
+        @path_options = @url_options.merge(:only_path => true)
       end
           
       it "should not change the host for an URL if the host subdomain matches" do
         hosts.each do |host|
-          with_host(host) { items_url.should == "http://#{host}/items" }
+          with_host(host) do
+           items_url.should == "http://#{host}/items" 
+           url_for(@url_options).should == "http://#{host}/items" 
+          end
         end
       end
   
       it "should not force the host for a path if the host subdomain matches" do
         hosts.each do |host|
-          with_host(host) { items_path.should == "/items" }
+          with_host(host) do
+            items_path.should == "/items" 
+            url_for(@path_options).should == "/items" 
+          end
         end
       end
   
@@ -89,6 +122,8 @@ describe "URL writing" do
         with_host "other.example.com" do
           lambda {  item_url }.should raise_error(ActionController::RoutingError)
           lambda { item_path }.should raise_error(ActionController::RoutingError)
+          lambda {  url_for(@url_options) }.should raise_error(ActionController::RoutingError)
+          lambda { url_for(@path_options) }.should raise_error(ActionController::RoutingError)
         end
       end
     
@@ -96,7 +131,10 @@ describe "URL writing" do
         it "should change the host if the requested subdomain matches" do
           [ [ subdomains.first, hosts.first, hosts.last ],
             [ subdomains.last, hosts.last, hosts.first ] ].each do |subdomain, new_host, old_host|
-            with_host(old_host) { items_path(:subdomain => subdomain).should == "http://#{new_host}/items" }
+            with_host(old_host) do
+              items_path(:subdomain => subdomain).should == "http://#{new_host}/items"
+              url_for(@path_options.merge(:subdomain => subdomain)).should == "http://#{new_host}/items"
+            end
           end
         end
           
@@ -105,6 +143,7 @@ describe "URL writing" do
             [ hosts.last, hosts.first ] ].each do |new_host, old_host|
             with_host(old_host) do
               lambda { items_path(:subdomain => :other) }.should raise_error(ActionController::RoutingError)
+              lambda { url_for(@path_options.merge(:subdomain => :other)) }.should raise_error(ActionController::RoutingError)
             end
           end
         end
@@ -115,7 +154,10 @@ describe "URL writing" do
   it "should downcase a supplied subdomain" do
     map_subdomain(:www1, :www2, :name => nil) { |map| map.resources :users }
     [ [ :Www1, "www1" ], [ "Www2", "www2" ] ].each do |mixedcase, lowercase|
-      with_host("www.example.com") { users_url(:subdomain => mixedcase).should == "http://#{lowercase}.example.com/users" }
+      with_host "www.example.com" do
+        users_url(:subdomain => mixedcase).should == "http://#{lowercase}.example.com/users"
+        url_for(:controller => "users", :action => "index", :subdomains => [ "www1", "www2" ], :subdomain => mixedcase).should == "http://#{lowercase}.example.com/users"
+      end
     end
   end
 
@@ -126,12 +168,16 @@ describe "URL writing" do
       @boston = City.new
       @boston.stub!(:new_record?).and_return(false)
       @boston.stub!(:to_param).and_return("boston")
+      @url_options = { :controller => "city/events", :action => "index", :subdomains => :city_id, :subdomain => @boston.to_param }
+      @path_options = @url_options.merge(:only_path => true)
     end
 
     it "should not change the host if the object has the same to_param as the current subdomain" do
       with_host "boston.example.com" do
          city_events_url(@boston).should == "http://boston.example.com/events"
         city_events_path(@boston).should == "/events"
+            url_for(@url_options).should == "http://boston.example.com/events"
+           url_for(@path_options).should == "/events"
       end
     end
   
@@ -139,6 +185,8 @@ describe "URL writing" do
       with_host "example.com" do
          city_events_url(@boston).should == "http://boston.example.com/events"
         city_events_path(@boston).should == "http://boston.example.com/events"
+            url_for(@url_options).should == "http://boston.example.com/events"
+           url_for(@path_options).should == "http://boston.example.com/events"
       end
     end
   
@@ -149,10 +197,12 @@ describe "URL writing" do
       with_host "www.example.com" do
         lambda {  city_events_url(@newyork) }.should raise_error(ActionController::RoutingError)
         lambda { city_events_path(@newyork) }.should raise_error(ActionController::RoutingError)
+        lambda {   url_for(@url_options.merge(:subdomain => @newyork.to_param)) }.should raise_error(ActionController::RoutingError)
+        lambda {  url_for(@path_options.merge(:subdomain => @newyork.to_param)) }.should raise_error(ActionController::RoutingError)
       end
     end
       
-    it "should not allow the subdomain to be manually overridden" do
+    it "should not allow the subdomain to be manually overridden in a named route" do
       with_host "www.example.com" do
          city_events_url(@boston, :subdomain => :canberra).should == "http://boston.example.com/events"
         city_events_path(@boston, :subdomain => :canberra).should == "http://boston.example.com/events"
