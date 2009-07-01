@@ -35,7 +35,6 @@ module SubdomainRoutes
           options[:only_path] = false
           options[:host] = [ new_subdomain, domain ].reject(&:blank?).join('.')
         end
-        options.delete(:subdomains)
         options.delete(:subdomain)
       end
     end
@@ -63,7 +62,7 @@ module SubdomainRoutes
     
     def self.included(base)
       base.alias_method_chain :rewrite, :subdomains
-      base::RESERVED_OPTIONS << :subdomain
+      base::RESERVED_OPTIONS << :subdomain # untested!
     end
     
     def rewrite_with_subdomains(options)      
